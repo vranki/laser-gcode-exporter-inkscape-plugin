@@ -1,3 +1,17 @@
+
+About This Fork
+---------------
+
+10.14.14 by ajf (https://github.com/ajfoul)
+
+Modifed to output gcode that is compatible with K40 style laser cutter running Marlin (https://github.com/lansing-makers-network/buildlog-lasercutter-marlin).
+
+I couldn't get the original version from LMN repo to work with LMN's Marlin as it never set the laser intensity on the M3 command.
+
+This works form me, but YMMV. Very limited testing.  Never leave your laser cutter unattended while it's powered/operating.  Keep a fire extinguisher close by, wear saftey googles, and be afraid! 
+
+USE AT YOUR OWN RISK!
+
 THLaser Inkscape Plugin
 -----------------------
 
