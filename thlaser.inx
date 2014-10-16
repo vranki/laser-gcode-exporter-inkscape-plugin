@@ -38,8 +38,8 @@ This script is a fork of Gcodetools v1.2 by Nick Drobchenko. It is currently mai
             <param name="filename" type="string" _gui-text="File name: ">output.ngc</param>
             <param name="directory" type="string" _gui-text="Directory: "></param>
             <_param name="help" type="description">(blank is your desktop)</_param>
-            <param name="feed" type="int" min="0" max="10000" _gui-text="Cut Feedrate:">60</param>
-            <param name="Mfeed" type="int" min="0" max="10000" _gui-text="Move Feedrate:">1000</param>
+            <param name="feed" type="int" min="0" max="1000" _gui-text="Cut Feedrate:">60</param>
+            <param name="Mfeed" type="int" min="0" max="1000" _gui-text="Move Feedrate:">300</param>
             <param name="laser" type="int" min="0" max="100" _gui-text="Laser Intensity (0-100):">10</param>
             <param name="homebefore" type="boolean" _gui-text="HOMEALL (G28) Before:">true</param>
 
