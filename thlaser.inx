@@ -42,6 +42,7 @@ This script is a fork of Gcodetools v1.2 by Nick Drobchenko. It is currently mai
             <param name="Mfeed" type="int" min="0" max="1000" _gui-text="Move Feedrate:">300</param>
             <param name="laser" type="int" min="0" max="100" _gui-text="Laser Intensity (0-100):">10</param>
             <param name="homebefore" type="boolean" _gui-text="HOMEALL (G28) Before:">true</param>
+            <param name="homeafter" type="boolean" _gui-text="HOMEALL (G28) After:">false</param>
 
             <param name="Xscale" type="float" precision="4" min="-1000" max="1000" _gui-text="Scale along X axis:">1</param>
             <param name="Yscale" type="float" precision="4" min="-1000" max="1000" _gui-text="Scale along Y axis:">1</param>

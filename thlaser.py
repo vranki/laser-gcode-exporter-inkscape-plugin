@@ -431,7 +431,8 @@ class Gcode_tools(inkex.Effect):
         self.OptionParser.add_option("-p", "--feed",                    action="store", type="int",         dest="feed", default="60",                        help="Cut Feed rate in unit/min")
         self.OptionParser.add_option("-m", "--Mfeed",                    action="store", type="int",         dest="Mfeed", default="300",                        help="Move Feed rate in unit/min")
         self.OptionParser.add_option("-l", "--laser",                    action="store", type="int",         dest="laser", default="10",                        help="Laser intensity (0-100)")
-        self.OptionParser.add_option("",   "--homebefore",                 action="store", type="inkbool",    dest="homebefore", default=True, help="Home all beofre starting (G28)")
+        self.OptionParser.add_option("-b",   "--homebefore",                 action="store", type="inkbool",    dest="homebefore", default=True, help="Home all axis beofre starting (G28)")
+        self.OptionParser.add_option("-a",   "--homeafter",                 action="store", type="inkbool",    dest="homeafter", default=False, help="Home all axis at end of job (G28)")
 
 
         self.OptionParser.add_option("",   "--biarc-tolerance",            action="store", type="float",         dest="biarc_tolerance", default="1",        help="Tolerance used when calculating biarc interpolation.")                
@@ -658,9 +659,12 @@ class Gcode_tools(inkex.Effect):
                     gcode += "G01 " +self.make_args(si[0]) + " F%i" % self.options.feed + "\n"
                     lg = 'G01'
 
-    # This added an extra M5 to final block (ajf)
+    
         if si[1] == 'end':
             gcode += LASER_OFF
+            if self.options.homeafter:
+                gcode += "\n\nG28 ; home all"
+
         return gcode
 
     def tool_change(self):
