@@ -856,7 +856,6 @@ class Gcode_tools(inkex.Effect):
 
         if not self.options.generate_not_parametric_code:
             gcode += """
-
 ; Cut Feedrate %i
 ; Move Feedrate %i
 ; Laser Intensity %i \n""" % (self.options.feed, self.options.Mfeed, self.options.laser)

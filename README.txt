@@ -12,6 +12,12 @@ This works form me, but YMMV. Very limited testing.  Never leave your laser cutt
 
 USE AT YOUR OWN RISK!
 
+10.17.14 - A little more testing reveals that G02 (CW ARC) and G03 (CCW ARC) moves are problematic.  Not sure if it's the modifications in this fork, the original THLaser, LMN's Marlin, Inkscape, or some combination that is causing the issues. 
+
+Basically, you should consider this pre-alpha code.  Examine the exported Gcode and do test runs on cardboard/paper before trying to cut on valuable stock.
+
+Also: G28 at the end of the job doesn't seem to be working at the moment, at least not when running the gcode on my machine.  
+
 THLaser Inkscape Plugin
 -----------------------
 
