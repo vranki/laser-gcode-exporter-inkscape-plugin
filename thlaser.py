@@ -450,7 +450,7 @@ class Gcode_tools(inkex.Effect):
         self.OptionParser.add_option("",   "--loft-direction",            action="store", type="string",         dest="loft_direction", default="crosswise",        help="Direction of loft's interpolation.")
         self.OptionParser.add_option("",   "--loft-interpolation-degree",action="store", type="float",        dest="loft_interpolation_degree", default="2",    help="Which interpolation use to loft the paths smooth interpolation or staright.")
 
-        self.OptionParser.add_option("",   "--min-arc-radius",            action="store", type="float",         dest="min_arc_radius", default=".1",            help="All arc having radius less than minimum will be considered as straight line")        
+        self.OptionParser.add_option("",   "--min-arc-radius",            action="store", type="float",         dest="min_arc_radius", default="500.0",            help="All arc having radius less than minimum will be considered as straight line")        
 
     def parse_curve(self, path):
 #        if self.options.Xscale!=self.options.Yscale:
@@ -663,7 +663,7 @@ class Gcode_tools(inkex.Effect):
         if si[1] == 'end':
             gcode += LASER_OFF
             if self.options.homeafter:
-                gcode += "\n\nG28 ; home all"
+                gcode += "\n\nG00 X0 Y0 F4000 ; home all"
 
         return gcode
 
