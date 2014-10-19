@@ -18,6 +18,8 @@ Basically, you should consider this pre-alpha code.  Examine the exported Gcode 
 
 Also: G28 at the end of the job doesn't seem to be working at the moment, at least not when running the gcode on my machine.  
 
+10.19.14 - G02 and G03 really screw things up, so I've set the default min_arc_radius to 500 to force all cut moves to be G01.  That has it's own issues.  At this point I wouldn't recommend using the Gcode from this for any real jobs.
+
 THLaser Inkscape Plugin
 -----------------------
 
