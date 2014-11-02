@@ -1,9 +1,9 @@
 G21 ; All units in mm
 
 ; Cut Feedrate 400
-; Move Feedrate 4000
+; Traversal Feedrate 4000
 
-G28 ; home all
+G0 X0 Y0 ; home
 
 M5
 
@@ -30,4 +30,4 @@ G02 S0.1 X67.763619 Y71.178072 I-35.354888 J35.353184 F400
 G01 S0.1 X67.763619 Y71.178072 F400
 M5
 
-G28 ; home all
+G0 X0 Y0 ; home

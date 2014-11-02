@@ -1,6 +1,11 @@
 #!/usr/bin/env python 
 
 """
+ShinyLaser
+
+"""
+
+"""
 think|haus gcode inkscape extension
 -----------------------------------
 Maintained by Peter Rogers (peter.rogers@gmail.com)
@@ -92,7 +97,7 @@ _ = inkex._
 ###
 ################################################################################
 
-VERSION = "1.30"
+VERSION = "1.0.1"
 
 STRAIGHT_TOLERANCE = 0.0001
 STRAIGHT_DISTANCE_TOLERANCE = 0.0001
@@ -430,9 +435,9 @@ class Gcode_tools(inkex.Effect):
         # added move (laser off) feedrate and laser intensity; made all int rather than float - (ajf)
         self.OptionParser.add_option("-p", "--feed",                    action="store", type="int",         dest="feed", default="60",                        help="Cut Feed rate in unit/min")
         self.OptionParser.add_option("-m", "--Mfeed",                    action="store", type="int",         dest="Mfeed", default="300",                        help="Move Feed rate in unit/min")
-        self.OptionParser.add_option("-l", "--laser",                    action="store", type="int",         dest="laser", default="10",                        help="Laser intensity (0-100)")
-        self.OptionParser.add_option("-b",   "--homebefore",                 action="store", type="inkbool",    dest="homebefore", default=True, help="Home all axis beofre starting (G28)")
-        self.OptionParser.add_option("-a",   "--homeafter",                 action="store", type="inkbool",    dest="homeafter", default=False, help="Home all axis at end of job (G28)")
+        self.OptionParser.add_option("-l", "--laser",                    action="store", type="float",         dest="laser", default="0.5",                        help="Laser intensity (0.0-1.0)")
+        self.OptionParser.add_option("-b",   "--homebefore",                 action="store", type="inkbool",    dest="homebefore", default=True, help="Home all beofre starting (G28)")
+        self.OptionParser.add_option("-a",   "--homeafter",                 action="store", type="inkbool",    dest="homeafter", default=False, help="Home X Y at end of job")
 
 
         self.OptionParser.add_option("",   "--biarc-tolerance",            action="store", type="float",         dest="biarc_tolerance", default="1",        help="Tolerance used when calculating biarc interpolation.")                
@@ -622,14 +627,14 @@ class Gcode_tools(inkex.Effect):
             elif s[1] == 'line':
                 if lg=="G00": 
                     #gcode += "G01 " + self.make_args([None,None,s[5][0]+depth]) + feed +"\n" + LASER_ON
-                    gcode += LASER_ON + " S%i" % self.options.laser + "\n"
-                gcode += "G01 " +self.make_args(si[0]) + " F%i" % self.options.feed + "\n"
+                    gcode += LASER_ON + "\n"
+                gcode += "G01 " + "S%.2f " % self.options.laser + self.make_args(si[0]) + " F%i" % self.options.feed + "\n"
                 lg = 'G01'
 
             elif s[1] == 'arc':
                 if lg=="G00":
                     #gcode += "G01 " + self.make_args([None,None,s[5][0]+depth]) + feed +"\n" + LASER_ON
-                    gcode += LASER_ON + " S%i" % self.options.laser + "\n"
+                    gcode += LASER_ON + "\n"
 
                 dx = s[2][0]-s[0][0]
                 dy = s[2][1]-s[0][1]
@@ -641,7 +646,7 @@ class Gcode_tools(inkex.Effect):
                             gcode += cwArc
                         else:
                             gcode += ccwArc
-                        gcode += " " + self.make_args(si[0] + [None, dx, dy, None]) + " F%i" % self.options.feed + "\n"
+                        gcode += " " + "S%.2f " % self.options.laser + self.make_args(si[0] + [None, dx, dy, None]) + " F%i" % self.options.feed + "\n"
 
                     else:
                         r = (r1.mag()+r2.mag())/2
@@ -649,21 +654,21 @@ class Gcode_tools(inkex.Effect):
                             gcode += cwArc
                         else:
                             gcode += ccwArc
-                        gcode += " " + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + " F%i" % self.options.feed  + "\n"
+                        gcode += " " + "S%.2f " % self.options.laser + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + " F%i" % self.options.feed  + "\n"
 
                     lg = cwArc
                 else:
                     if lg=="G00": 
                         #gcode += "G01 " + self.make_args([None,None,s[5][0]+depth]) + feed +"\n" + LASER_ON
-                        gcode += LASER_ON + " S%i" % self.options.laser + "\n"
-                    gcode += "G01 " +self.make_args(si[0]) + " F%i" % self.options.feed + "\n"
+                        gcode += LASER_ON + "\n"
+                    gcode += "G01 " + "S%.2f " % self.options.laser + self.make_args(si[0]) + " F%i" % self.options.feed + "\n"
                     lg = 'G01'
 
     
         if si[1] == 'end':
             gcode += LASER_OFF
             if self.options.homeafter:
-                gcode += "\n\nG00 X0 Y0 F4000 ; home all"
+                gcode += "\n\nG00 X0 Y0 F4000 ; home"
 
         return gcode
 
