@@ -72,6 +72,9 @@ Changelog 2010-04-07 - Adina:
 
 Changelog 2010-04-20:
 * made the .inx file refer to the correct .py file... it should work now?
+
+
+Notes : M649 S100 L300 P10 - Laser 100 percent, pulses are each 300ms, and 10 pulses per mm.
 """
 
 ###
@@ -396,11 +399,11 @@ def parse_layer_name(txt):
                 (field, value) = arg.split("=")
             except:
                 raise ValueError("Invalid argument in layer '%s'" % layerName)
-            if (field == "feed"):
+            if (field == "feed" or field == "ppm"):
                 try:
                     value = float(value)
                 except:
-                    raise ValueError("Invalid feed rate '%s'" % value)
+                    raise ValueError("Invalid layer name '%s'" % value)
             params[field] = value
             logger.write("%s == %s" % (field, value))
 
@@ -435,7 +438,7 @@ class Gcode_tools(inkex.Effect):
         # added move (laser off) feedrate and laser intensity; made all int rather than float - (ajf)
         self.OptionParser.add_option("-p", "--feed",                    action="store", type="int",         dest="feed", default="60",                        help="Cut Feed rate in unit/min")
         self.OptionParser.add_option("-m", "--Mfeed",                    action="store", type="int",         dest="Mfeed", default="300",                        help="Move Feed rate in unit/min")
-        self.OptionParser.add_option("-l", "--laser",                    action="store", type="float",         dest="laser", default="0.5",                        help="Laser intensity (0.0-1.0)")
+        self.OptionParser.add_option("-l", "--laser",                    action="store", type="int",         dest="laser", default="10",                        help="Laser intensity (0-100 %)")
         self.OptionParser.add_option("-b",   "--homebefore",                 action="store", type="inkbool",    dest="homebefore", default=True, help="Home all beofre starting (G28)")
         self.OptionParser.add_option("-a",   "--homeafter",                 action="store", type="inkbool",    dest="homeafter", default=False, help="Home X Y at end of job")
 
@@ -732,6 +735,12 @@ class Gcode_tools(inkex.Effect):
 
         layers = list(reversed(get_layers(self.document)))
 
+        #Switch between smoothie power levels and ramps+marlin power levels
+        #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
+        if (self.options.mainboard == 'smoothie'):
+            self.options.laser = self.options.laser / 100
+
+
         # Loop over the layers and objects
         gcode = ""
         for layer in layers:
@@ -779,10 +788,10 @@ class Gcode_tools(inkex.Effect):
             if (len(layers) > 1):
                 gcode += LASER_OFF+"\n"
                 size = 60
-                gcode += "(%s)\n" % ("*"*size)
-                gcode += ("(***** LAYER: %%-%ds *****)\n" % (size-19)) % (layerName)
-                gcode += "(%s)\n" % ("*"*size)
-                gcode += "(MSG,Starting layer '%s')\n\n" % layerName
+                gcode += ";(%s)\n" % ("*"*size)
+                gcode += (";(***** LAYER: %%-%ds *****)\n" % (size-19)) % (layerName)
+                gcode += ";(%s)\n" % ("*"*size)
+                gcode += ";(MSG,Starting layer '%s')\n\n" % layerName
                 # Move the laser into the starting position (so that way it is positioned
                 # for testing the power level, if the user wants to change that).
                 arg = curve[0]
@@ -872,7 +881,7 @@ class Gcode_tools(inkex.Effect):
         gcode += self.effect_curve(selected)
 
         if (self.options.double_sided_cutting):
-            gcode += "\n\n(MSG,Please flip over material)\n\n"
+            gcode += "\n\n;(MSG,Please flip over material)\n\n"
             # Include a tool change operation
             gcode += self.tool_change()
 
