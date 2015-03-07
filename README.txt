@@ -7,9 +7,7 @@ running Marlin (https://github.com/lansing-makers-network/buildlog-lasercutter-m
 26-Feb-2015 - 2 hours : Forked from user ajfoul to extend functionality of smoothie  
 laser power levels 0.0 to 1.0, generic Marlin power levels being 0 to 100.
 
-07-March-2015 - 10 hours : Cleaned up the exporters code a lot. Added ppm and feedrate detection from
-the layer name. Updated the gcode that is exported to be neater and work better with 
-pulsed mode using G01, G02 and G03 commands.
+07-March-2015 - 10 hours : Cleaned up the exporters code a lot. Added ppm and feedrate detection from the layer name. Updated the gcode that is exported to be neater and work better with pulsed mode using G01, G02 and G03 commands.
 
 07-March-2015 - Fixed the G28 command at the end of the job. Added defaults for laser power, feedrates and ppm if defined. If ppm isn't defined in the layer options it will operate as continuous wave mode. See the help in the extension dialog for how to use.
 
