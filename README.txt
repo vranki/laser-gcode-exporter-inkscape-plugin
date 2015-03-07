@@ -11,13 +11,9 @@ laser power levels 0.0 to 1.0, generic Marlin power levels being 0 to 100.
 the layer name. Updated the gcode that is exported to be neater and work better with 
 pulsed mode using G01, G02 and G03 commands.
 
-07-March-2015 - Fixed the G28 command at the end of the job. Added defaults for laser power,
-feedrates and ppm if defined. If ppm isn't defined in the layer options it will operate as 
-continuous wave mode. See the help in the extension dialog for how to use.
+07-March-2015 - Fixed the G28 command at the end of the job. Added defaults for laser power, feedrates and ppm if defined. If ppm isn't defined in the layer options it will operate as continuous wave mode. See the help in the extension dialog for how to use.
 
-07-March-2015 - Marlin codebase mod : You need to patch the Marlin codebase to turn on the 
-laser before moving for G02 and G03 commands. This plugin assumes this has been done. More 
-details to come in the future. Copy the code from the G01 above in marlin_main.cpp
+07-March-2015 - Marlin codebase mod : You need to patch the Marlin codebase to turn on the laser before moving for G02 and G03 commands. This plugin assumes this has been done. More details to come in the future. Copy the code from the G01 above in marlin_main.cpp
 
 Turnkey Laser Inkscape Gcode Export Plugin
 ------------------------------------------
