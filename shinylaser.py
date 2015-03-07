@@ -1,15 +1,12 @@
 #!/usr/bin/env python 
 
 """
-ShinyLaser
+TurnkeyLaserExporter
 
-"""
-
-"""
-think|haus gcode inkscape extension
 -----------------------------------
-Maintained by Peter Rogers (peter.rogers@gmail.com)
-Customized to suit our needs at thinkhaus.org (see change log below)
+Maintained by Turnkey Tyranny (https://github.com/TurnkeyTyranny/laser-gcode-exporter-inkscape-plugin)
+Designed to run on Ramps 1.4 + Marlin firmware on a K40 CO2 Laser Cutter.
+Based on think|haus gcode inkscape extension
 Based on a script by Nick Drobchenko from the CNC club
 
 ***
@@ -36,45 +33,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
 """
-Changelog 2012-01-12 - PAR:
-* fixed bug in compile_paths when dealing with empty node data
 
-Changelog 2011-10-16 - PAR:
-* general code cleanup to make things more readable
-* now inkscape coordinate system matches laser bed coordinate system
-* removed "area curve" code, since it wasn't being used and wasn't working anyways
-* cleanup of source code, reorganized the dialog window
+Changelog 2015-02-01:
+* Beginning of the project. Based on a fork from ShinyLaser(https://github.com/ajfoul/thlaser-inkscape-plugin)
 
-Changelog 2011-08-06 - PAR:
-* layer and group transforms now taken into account
-* tool change now happens on every layer (only when multiple layers present)
-* displays a message at the start of each layer
+Changelog 2015-02-16: 
+Added an option to export as Marlin or Smoothie Power levels
 
-Changelog 2011-07-31 - PAR:
-* misc bug fixes
-* objects in document root (ie not in a layer) now outputted properly
-* skips 'comment' layers (ie name prefixed with '#')
-* warns about any selected objects not outputted by the script
-
-Changelog 2011-07-01 - PAR:
-* logging is now enabled by default
-* handling groups and layers properly
-* toolchange operation (M6) added between outputting layers
-* removed 'options.ids' in favor of 'self.selected'
-
-Changelog 2011-02-20 - Adina:
-* removed any movement in the z axis when the laser is trying to etch a curve.
-* removed extra M3s: the laser only turns on at the beginning of a cut block, not before every line.
-
-Changelog 2010-04-07 - Adina:
-* separate scaling factor for x and y,
-* x and y scaled to mm or inches that match the dimensions in inkscape (not 1px = 1 in or mm) 
-
-Changelog 2010-04-20:
-* made the .inx file refer to the correct .py file... it should work now?
-
-
-Notes : M649 S100 L300 P10 - Laser 100 percent, pulses are each 300ms, and 10 pulses per mm.
+Changelog 2015-03-07: 
+Added capability to pick out power, ppm, feedrate etc from the layer names
+Added code to support Pulse Per Minute burning or continuous burning. Will default to continuous.
+M649 S100 L300 P10 - Set Laser settings to 100 percent power, pulses are each 300ms, and 10 pulses per mm.	
+G0 : Move to a new location with the laser off.
+G1 : Move to a new location with the laser on.
+G2 : Move in a Clockwise Arc   
+G3 : Move in a Counter Clockwise Arc
+Name your layer like 10 [feed=600,ppm=40] for 10% power, 600mm per minute cut and 40 pulse per millimetre at 60ms duration
 """
 
 ###
@@ -91,7 +65,7 @@ import re
 import copy
 import sys
 import time
-_ = inkex._
+#_ = inkex._
 
 
 ################################################################################
@@ -104,9 +78,8 @@ VERSION = "1.0.1"
 
 STRAIGHT_TOLERANCE = 0.0001
 STRAIGHT_DISTANCE_TOLERANCE = 0.0001
-LASER_ON = "M3"          # Peter - LASER ON MCODE
-LASER_OFF = "M5\n"        # Peter - LASER OFF MCODE
-TOOL_CHANGE = "T%02d (select tool)\nM6 (tool change)\n\n"
+LASER_ON = "M3 ;turn the laser on"          # LASER ON MCODE
+LASER_OFF = "M5 ;turn the laser off\n"        # LASER OFF MCODE
 
 HEADER_TEXT = ""
 FOOTER_TEXT = ""
@@ -435,10 +408,11 @@ class Gcode_tools(inkex.Effect):
         self.OptionParser.add_option("-v", "--Yscale",                    action="store", type="float",         dest="Yscale", default="1.0",                    help="Scale factor Y")
         self.OptionParser.add_option("-x", "--Xoffset",                    action="store", type="float",         dest="Xoffset", default="0.0",                    help="Offset along X")    
         self.OptionParser.add_option("-y", "--Yoffset",                    action="store", type="float",         dest="Yoffset", default="0.0",                    help="Offset along Y")
-        # added move (laser off) feedrate and laser intensity; made all int rather than float - (ajf)
-        self.OptionParser.add_option("-p", "--feed",                    action="store", type="int",         dest="feed", default="60",                        help="Cut Feed rate in unit/min")
-        self.OptionParser.add_option("-m", "--Mfeed",                    action="store", type="int",         dest="Mfeed", default="300",                        help="Move Feed rate in unit/min")
-        self.OptionParser.add_option("-l", "--laser",                    action="store", type="int",         dest="laser", default="10",                        help="Laser intensity (0-100 %)")
+        # added move (laser off) feedrate and laser intensity; made all int rather than float - (ajf)																								   
+
+        self.OptionParser.add_option("-m", "--Mfeed",                    action="store", type="int",         dest="Mfeed", default="2000",                        help="Default Move Feed rate in unit/min")
+        self.OptionParser.add_option("-p", "--feed",                    action="store", type="int",         dest="feed", default="300",                        help="Default Cut Feed rate in unit/min")
+        self.OptionParser.add_option("-l", "--laser",                    action="store", type="int",         dest="laser", default="10",                        help="Default Laser intensity (0-100 %)")
         self.OptionParser.add_option("-b",   "--homebefore",                 action="store", type="inkbool",    dest="homebefore", default=True, help="Home all beofre starting (G28)")
         self.OptionParser.add_option("-a",   "--homeafter",                 action="store", type="inkbool",    dest="homeafter", default=False, help="Home X Y at end of job")
 
@@ -458,8 +432,10 @@ class Gcode_tools(inkex.Effect):
         self.OptionParser.add_option("",   "--loft-direction",            action="store", type="string",         dest="loft_direction", default="crosswise",        help="Direction of loft's interpolation.")
         self.OptionParser.add_option("",   "--loft-interpolation-degree",action="store", type="float",        dest="loft_interpolation_degree", default="2",    help="Which interpolation use to loft the paths smooth interpolation or staright.")
 
-        self.OptionParser.add_option("",   "--min-arc-radius",            action="store", type="float",         dest="min_arc_radius", default="500.0",            help="All arc having radius less than minimum will be considered as straight line")        
-
+        self.OptionParser.add_option("",   "--min-arc-radius",            action="store", type="float",         dest="min_arc_radius", default="0.0005",            help="All arc having radius less than minimum will be considered as straight line")        
+        self.OptionParser.add_option("",   "--mainboard",                    action="store", type="string",         dest="mainboard", default="ramps",    help="Mainboard")
+	    
+		
     def parse_curve(self, path):
 #        if self.options.Xscale!=self.options.Yscale:
 #            xs,ys = self.options.Xscale,self.options.Yscale
@@ -591,53 +567,68 @@ class Gcode_tools(inkex.Effect):
                 args.append(s[i] + ("%f" % value) + s1[i])
         return " ".join(args)
     
-    def generate_gcode(self, curve, depth, altfeed=None):
+    def generate_gcode(self, curve, depth, laserPower, altfeed=None, altppm=None):
         gcode = ''
+        
+        #Setup our feed rate, either from the layer name or from the default value.
         if (altfeed):
             # Use the "alternative" feed rate specified
-            f = " F%i" % altfeed
+            cutFeed = "F%i" % altfeed
         else:
-            if self.options.generate_not_parametric_code:
-                f = " F%i" % self.options.feed
+            if self.options.generate_not_parametric_code: 
+                cutFeed = "F%i" % self.options.feed
             else:
-                f = " F100"
+                cutFeed = "F%i" % self.options.feed
+                
+        #Setup our pulse per millimetre option, if applicable
+        #B: laser firing mode (0 = continuous, 1 = pulsed, 2 = raster)
+        if (altppm):
+            # Use the "alternative" ppm - L60000 is 60ms
+            ppmValue = "L60000 P%.2f B1 D0" % altppm
+        else:
+            #Set the laser firing mode to continuous.
+            ppmValue = "B0 D0"
 
         cwArc = "G02"
         ccwArc = "G03"
+		
+		# The geometry is reflected, so invert the orientation of the arcs to match
         if (self.flipArcs):
-            # The geometry is reflected, so invert the orientation of the arcs to match
             (cwArc, ccwArc) = (ccwArc, cwArc)
 
-        # Peter's note: Here's where the 'laser on' and 'laser off' m-codes get appended to the GCODE generation
+        # The 'laser on' and 'laser off' m-codes get appended to the GCODE generation
         lg = 'G00'
         for i in range(1,len(curve)):
             s, si = curve[i-1], curve[i]
-            #feed = f if lg not in ['G01','G02','G03'] else ''
 
-            if (lg not in ["G01", "G02", "G03"]):
-                feed = f
-            else:
-                feed = ""
-
+			#G00 : Move with the laser off to a new point
             if s[1] == 'move':
-                # Traversals (G00) tend to signal either the toolhead coming up, going down, or indexing to a new workplace.  All other cases seem to signal cutting.
-                gcode += LASER_OFF + "\nG00" + " " + self.make_args(si[0]) + " F%i" % self.options.Mfeed + "\n"
+                #Turn off the laser if it was on previously.
+                if lg != "G00":
+                    gcode += LASER_OFF + "\n"
+				
+                gcode += "G00" + " " + self.make_args(si[0]) + " F%i" % self.options.Mfeed + "\n"
                 lg = 'G00'
 
             elif s[1] == 'end':
                 lg = 'G00'
 
+			#G01 : Move with the laser turned on to a new point
             elif s[1] == 'line':
-                if lg=="G00": 
-                    #gcode += "G01 " + self.make_args([None,None,s[5][0]+depth]) + feed +"\n" + LASER_ON
-                    gcode += LASER_ON + "\n"
-                gcode += "G01 " + "S%.2f " % self.options.laser + self.make_args(si[0]) + " F%i" % self.options.feed + "\n"
+                #No longer needed because G01, G02 and G03 will be forced in marlin to automatically fire the laser.
+                #If the laser was turned off, turn it back on.
+                #if lg == "G00": 
+                #   gcode += LASER_ON + "\n"	 
+
+                gcode += "G01 " + "S%.2f " % laserPower + self.make_args(si[0]) + " %s " % cutFeed + "%s" % ppmValue + "\n"
                 lg = 'G01'
 
+            #G02 and G03 : Move in an arc with the laser turned on.
             elif s[1] == 'arc':
-                if lg=="G00":
-                    #gcode += "G01 " + self.make_args([None,None,s[5][0]+depth]) + feed +"\n" + LASER_ON
-                    gcode += LASER_ON + "\n"
+                #No longer needed because G01, G02 and G03 will be forced in marlin to automatically fire the laser.
+                #If the laser was turned off, turn it back on.
+                #if lg == "G00":
+                #    gcode += LASER_ON + "\n"
 
                 dx = s[2][0]-s[0][0]
                 dy = s[2][1]-s[0][1]
@@ -649,7 +640,7 @@ class Gcode_tools(inkex.Effect):
                             gcode += cwArc
                         else:
                             gcode += ccwArc
-                        gcode += " " + "S%.2f " % self.options.laser + self.make_args(si[0] + [None, dx, dy, None]) + " F%i" % self.options.feed + "\n"
+                        gcode += " " + "S%.2f " % laserPower + self.make_args(si[0] + [None, dx, dy, None]) + " %s " % cutFeed + "%s" % ppmValue + "\n"
 
                     else:
                         r = (r1.mag()+r2.mag())/2
@@ -657,21 +648,19 @@ class Gcode_tools(inkex.Effect):
                             gcode += cwArc
                         else:
                             gcode += ccwArc
-                        gcode += " " + "S%.2f " % self.options.laser + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + " F%i" % self.options.feed  + "\n"
+                        gcode += " " + "S%.2f " % laserPower + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + " %s " % cutFeed + "%s" % ppmValue + "\n"
 
                     lg = cwArc
+                #The arc is less than the minimum arc radius, draw it as a straight line.
                 else:
-                    if lg=="G00": 
-                        #gcode += "G01 " + self.make_args([None,None,s[5][0]+depth]) + feed +"\n" + LASER_ON
-                        gcode += LASER_ON + "\n"
-                    gcode += "G01 " + "S%.2f " % self.options.laser + self.make_args(si[0]) + " F%i" % self.options.feed + "\n"
+                    gcode += "G01 " + "S%.2f " % laserPower + self.make_args(si[0]) + " %s " % cutFeed + "%s" % ppmValue + "\n"
                     lg = 'G01'
 
     
+        #The end of the layer.
         if si[1] == 'end':
             gcode += LASER_OFF
-            if self.options.homeafter:
-                gcode += "\n\nG00 X0 Y0 F4000 ; home"
+
 
         return gcode
 
@@ -735,12 +724,6 @@ class Gcode_tools(inkex.Effect):
 
         layers = list(reversed(get_layers(self.document)))
 
-        #Switch between smoothie power levels and ramps+marlin power levels
-        #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
-        if (self.options.mainboard == 'smoothie'):
-            self.options.laser = self.options.laser / 100
-
-
         # Loop over the layers and objects
         gcode = ""
         for layer in layers:
@@ -762,6 +745,7 @@ class Gcode_tools(inkex.Effect):
 
             # Check if the layer specifies an alternative (from the default) feed rate
             altfeed = layerParams.get("feed", None)
+            altppm = layerParams.get("ppm", None)
 
             logger.write("layer %s" % layerName)
             if (layerParams):
@@ -783,26 +767,47 @@ class Gcode_tools(inkex.Effect):
                 logger.write("no objects in layer")
                 continue
             curve = self.parse_curve(pathList)
+            
+            #Determind the power of the laser that this layer should be cut at.
+            #If the layer is not named as an integer value then default to the laser intensity set at the export settings.
+            #Fetch the laser power from the export dialog box.
+            laserPower = self.options.laser
+            
+            if (int(layerName) > 0 and int(layerName) <= 100):
+                laserPower = int(layerName)
+            else :
+                laserPower = self.options.laser
+            
+            #Switch between smoothie power levels and ramps+marlin power levels
+            #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
+            if (self.options.mainboard == 'smoothie'):
+                laserPower = laserPower / 100
+                
 
             # If there are several layers, start with a tool change operation
-            if (len(layers) > 1):
+            #Turnkey : Always output the layer header for information.
+            if (len(layers) > 0):
                 gcode += LASER_OFF+"\n"
                 size = 60
                 gcode += ";(%s)\n" % ("*"*size)
-                gcode += (";(***** LAYER: %%-%ds *****)\n" % (size-19)) % (layerName)
+                gcode += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (layerName)
+                gcode += (";(***** Laser Power: %%-%ds *****)\n" % (size-25)) % (laserPower)
+                gcode += (";(***** Feed Rate: %%-%ds *****)\n" % (size-23)) % (altfeed)
+                gcode += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
                 gcode += ";(%s)\n" % ("*"*size)
                 gcode += ";(MSG,Starting layer '%s')\n\n" % layerName
                 # Move the laser into the starting position (so that way it is positioned
                 # for testing the power level, if the user wants to change that).
                 arg = curve[0]
                 pt = arg[0]
-                gcode += "G00 " + self.make_args(pt) + "\n"
-                gcode += self.tool_change()
+                #gcode += "G00 " + self.make_args(pt) + "\n"
+
 
             if (self.options.drawCurves):
                 self.draw_curve(curve)
-
-            gcode += self.generate_gcode(curve, 0, altfeed=altfeed)
+                
+            #Generate the GCode for this layer
+            gcode += self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
 
         # If there are any objects left over, it's because they don't belong
         # to any inkscape layer (bug in inkscape?). Output those now.
@@ -818,13 +823,21 @@ class Gcode_tools(inkex.Effect):
                 if (self.options.drawCurves):
                     self.draw_curve(curve)
 
-                gcode += "\n(*** Root objects ***)\n"
-                if (layers):
-                    # Include a tool change operation between the layers outputted above
-                    # and these "orphaned" objects.
-                    gcode += self.tool_change()
-
-                gcode += self.generate_gcode(curve, 0)
+                gcode += "\n;(*** Root objects ***)\n"
+                
+                #Fetch the laser power from the export dialog box.
+                laserPower = self.options.laser
+                
+                #Switch between smoothie power levels and ramps+marlin power levels
+                #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
+                if (self.options.mainboard == 'smoothie'):
+                    laserPower = laserPower / 100
+                
+                gcode += self.generate_gcode(curve, 0, laserPower)
+                
+        if self.options.homeafter:
+            gcode += "\n\nG00 X0 Y0 F4000 ; home"
+                
         return gcode
 
     def effect(self):
@@ -870,9 +883,9 @@ class Gcode_tools(inkex.Effect):
 
         if not self.options.generate_not_parametric_code:
             gcode += """
-; Cut Feedrate %i
-; Move Feedrate %i
-; Laser Intensity %i \n""" % (self.options.feed, self.options.Mfeed, self.options.laser)
+; Default Cut Feedrate %i mm per minute
+; Default Move Feedrate %i mm per minute
+; Default Laser Intensity %i percent\n""" % (self.options.feed, self.options.Mfeed, self.options.laser)
 
         if self.options.homebefore:
             gcode += "G28 ; home all\n\n"
