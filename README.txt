@@ -1,35 +1,29 @@
+About This Project
+------------------
 
-About This Fork
----------------
+Modified to output gcode that is compatible with K40 style laser cutter
+running Marlin (https://github.com/lansing-makers-network/buildlog-lasercutter-marlin).
 
-10.14.14 by ajf (https://github.com/ajfoul)
+26-Feb-2015 - 2 hours : Forked from user ajfoul to extend functionality of smoothie  
+laser power levels 0.0 to 1.0, generic Marlin power levels being 0 to 100.
 
-Modified to output gcode that is compatible with K40 style laser cutter running Marlin (https://github.com/lansing-makers-network/buildlog-lasercutter-marlin).
+07-March-2015 - 10 hours : Cleaned up the exporters code a lot. Added ppm and feedrate detection from
+the layer name. Updated the gcode that is exported to be neater and work better with 
+pulsed mode using G01, G02 and G03 commands.
 
-I couldn't get the original version from LMN repo to work with LMN's Marlin as it never set the laser intensity on the M3 command.
+07-March-2015 - Fixed the G28 command at the end of the job. Added defaults for laser power,
+feedrates and ppm if defined. If ppm isn't defined in the layer options it will operate as 
+continuous wave mode. See the help in the extension dialog for how to use.
 
-This works form me, but YMMV. Very limited testing.  Never leave your laser cutter unattended while it's powered/operating.  Keep a fire extinguisher close by, wear saftey goggles, and be afraid! 
+07-March-2015 - Marlin codebase mod : You need to patch the Marlin codebase to turn on the 
+laser before moving for G02 and G03 commands. This plugin assumes this has been done. More 
+details to come in the future. Copy the code from the G01 above in marlin_main.cpp
 
-USE AT YOUR OWN RISK!
-
-10.17.14 - A little more testing reveals that G02 (CW ARC) and G03 (CCW ARC) moves are problematic.  Not sure if it's the modifications in this fork, the original THLaser, LMN's Marlin, Inkscape, or some combination that is causing the issues. 
-
-Basically, you should consider this pre-alpha code.  Examine the exported Gcode and do test runs on cardboard/paper before trying to cut on valuable stock.
-
-Also: G28 at the end of the job doesn't seem to be working at the moment, at least not when running the gcode on my machine.  
-
-10.19.14 - G02 and G03 really screw things up, so I've set the default min_arc_radius to 500 to force all cut moves to be G01.  That has it's own issues.  At this point I wouldn't recommend using the Gcode from this for any real jobs.
-
-11.22.14 - Reverted min_arc_radius default 
-
-THLaser Inkscape Plugin
------------------------
+Turnkey Laser Inkscape Gcode Export Plugin
+------------------------------------------
 
 This program is an Inkscape extension for exporting a set of paths as 
-gcode script. It is primarily used by members to the think|haus hacker
-space (thinkhaus.org) for use with their laser cutter. As such it is
-customized to suit our needs and so may not be your best choice if you
-are looking for a general purpose Inkscape to gcode script.
+gcode script. 
 
 This script is a fork of Gcodetools v1.2 written by Nick Drobchenko and
 is released under the same license (GPL v2).
@@ -37,7 +31,7 @@ is released under the same license (GPL v2).
 Installation
 ------------
 
-Copy the files thlaser.py and thlaser.inx into your Inkscape extensions
+Copy the files turnkeylaser.py and turnkeylaser.inx into your Inkscape extensions
 folder. Fire up inkscape and you will find the plugin under Extensions ->
 Export -> THLaser GCode Export.
 
@@ -48,7 +42,8 @@ You may find it handy to assign the extension to a keyboard shortcut.
 Include something like the following line to your inkscape keys 
 preferences file (this will bind the plugin to Ctrl+\):
 
-<bind key="backslash" modifiers="Ctrl" action="org.thinkhaus.filter.thlaser" display="true"/>
+<bind key="backslash" modifiers="Ctrl" action="org.thinkhaus.filter.thlaser"
+display="true"/>
 
 You can find your keyboard preferences file:
 
@@ -59,6 +54,6 @@ If that file doesn't exist, create it and include the following:
 
 <?xml version="1.0"?>
 <keys name="My Keys">
-<bind key="backslash" modifiers="Ctrl" action="org.thinkhaus.filter.thlaser" display="true"/>
+<bind key="backslash" modifiers="Ctrl" action="org.thinkhaus.filter.thlaser"
+display="true"/>
 </keys>
-
