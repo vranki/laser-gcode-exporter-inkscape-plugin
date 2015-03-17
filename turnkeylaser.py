@@ -5,7 +5,7 @@ TurnkeyLaserExporter
 
 -----------------------------------
 Maintained by Turnkey Tyranny (https://github.com/TurnkeyTyranny/laser-gcode-exporter-inkscape-plugin)
-Designed to run on Ramps 1.4 + Marlin firmware on a K40 CO2 Laser Cutter. 
+Designed to run on Ramps 1.4 + Marlin firmware on a K40 CO2 Laser Cutter.
 Based on think|haus gcode inkscape extension
 Based on a script by Nick Drobchenko from the CNC club
 
@@ -533,7 +533,7 @@ class Gcode_tools(inkex.Effect):
             else:
                 self.footer = FOOTER_TEXT
         else: 
-            inkex.errormsg(_("Directory does not exist!"))
+            inkex.errormsg(("Directory does not exist!"))
             return
 
     # Turns a list of arguments into gcode-style parameters (eg (1, 2, 3) -> "X1 Y2 Z3"),
@@ -781,7 +781,7 @@ class Gcode_tools(inkex.Effect):
             #Switch between smoothie power levels and ramps+marlin power levels
             #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
             if (self.options.mainboard == 'smoothie'):
-                laserPower = laserPower / 100
+                laserPower = float(laserPower) / 100
                 
 
             # If there are several layers, start with a tool change operation
@@ -831,7 +831,7 @@ class Gcode_tools(inkex.Effect):
                 #Switch between smoothie power levels and ramps+marlin power levels
                 #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
                 if (self.options.mainboard == 'smoothie'):
-                    laserPower = laserPower / 100
+                    laserPower = float(laserPower) / 100
                 
                 gcode += self.generate_gcode(curve, 0, laserPower)
                 
@@ -852,7 +852,7 @@ class Gcode_tools(inkex.Effect):
 
         self.filename = options.file.strip()
         if (self.filename == "-1.0" or self.filename == ""):
-            inkex.errormsg(_("Please select an output file name."))
+            inkex.errormsg(("Please select an output file name."))
             return
 
         if (not self.filename.lower().endswith(GCODE_EXTENSION)):
@@ -864,7 +864,7 @@ class Gcode_tools(inkex.Effect):
         logger.write("output file == %s" % self.options.file)
 
         if len(selected)<=0:
-            inkex.errormsg(_("This extension requires at least one selected path."))
+            inkex.errormsg(("This extension requires at least one selected path."))
             return
 
         self.check_dir()
@@ -878,7 +878,7 @@ class Gcode_tools(inkex.Effect):
             self.unitScale = 0.011111
             gcode += "G20 ; All units in in\n"
         else:
-            inkex.errormsg(_("You must choose mm or in"))
+            inkex.errormsg(("You must choose mm or in"))
             return
 
         if not self.options.generate_not_parametric_code:
@@ -911,11 +911,11 @@ class Gcode_tools(inkex.Effect):
             f.write(gcode + self.footer)
             f.close()                            
         except:
-            inkex.errormsg(_("Can not write to specified file!"))
+            inkex.errormsg(("Can not write to specified file!"))
             return
 
         if (self.skipped > 0):
-            inkex.errormsg(_("Warning: skipped %d object(s) because they were not paths" % self.skipped))
+            inkex.errormsg(("Warning: skipped %d object(s) because they were not paths. Please convert them to paths using the menu 'Path->Object To Path'" % self.skipped))
 
 e = Gcode_tools()
 e.affect()
