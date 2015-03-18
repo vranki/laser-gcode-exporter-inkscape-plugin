@@ -13,6 +13,12 @@ laser power levels 0.0 to 1.0, generic Marlin power levels being 0 to 100.
 
 07-March-2015 - Marlin codebase mod : You need to patch the Marlin codebase to turn on the laser before moving for G02 and G03 commands. This plugin assumes this has been done. More details to come in the future. Copy the code from the G01 above in marlin_main.cpp
 
+19-March-2015 - After optimising the image to gcode 'code' I'm not working on
+integrating that into the python script run directly from Inkscape. Hiccups
+though as Inkscape for Windows ships with a shitty version of Python that is
+missing imaging libraries. Must install Python 2.7 and PIL for image reading.
+Have a proof of concept running
+
 Turnkey Laser Inkscape Gcode Export Plugin
 ------------------------------------------
 
