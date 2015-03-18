@@ -65,6 +65,13 @@ import re
 import copy
 import sys
 import time
+
+import base64
+from PIL import Image
+import ImageOps
+
+import getopt
+from io import BytesIO
 #_ = inkex._
 
 
@@ -94,6 +101,7 @@ BIARC_STYLE = {
 # Inkscape group tag
 SVG_GROUP_TAG = inkex.addNS("g", "svg")
 SVG_PATH_TAG = inkex.addNS('path','svg')
+SVG_IMAGE_TAG = inkex.addNS('image')
 SVG_LABEL_TAG = inkex.addNS("label", "inkscape")
 
 
@@ -708,7 +716,29 @@ class Gcode_tools(inkex.Effect):
                 for child in node.iterchildren():
                     path += compile_paths(child, trans)
                 return path
-            logger.write("skipping " + str(node.tag))
+            else:
+                #inkex.errormsg( ) 
+                
+                #visit https://www.python.org/downloads/ and download python 2.7.9
+                #Install it
+                #In the folder : C:\Program Files\Inkscape you will need to rename the folder "Python" to "Python-old" so it uses the new system install instead.
+                #pip install wheel
+                #From http://www.lfd.uci.edu/~gohlke/pythonlibs/#pil , download "Pillow-2.7.0-cp27-none-win32.whl"
+                #pip install Pillow-2.7.0-cp27-none-win32.whl
+                #You're good to go!     
+                
+                #Export the image data.
+                width = int(float(node.get("width")))
+                height = int(float(node.get("height")))
+                data = str((node.get(inkex.addNS('href','xlink')) )).replace("data:image/jpeg;base64,","")
+                im = Image.open(BytesIO(base64.b64decode(data))).convert('L')
+                img = ImageOps.invert(im)
+                pixels = list(im.getdata())
+                pixels = [pixels[i * width:(i + 1) * width] for i in xrange(height)]
+                
+                inkex.errormsg( str(pixels)) 
+
+            inkex.errormsg("skipping " + str(node.tag))
             self.skipped += 1
             return []
 
