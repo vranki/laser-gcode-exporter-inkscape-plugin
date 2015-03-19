@@ -589,6 +589,24 @@ class Gcode_tools(inkex.Effect):
         gcode = ''
         forward = True
         
+        #Setup our feed rate, either from the layer name or from the default value.
+        if (altfeed):
+            # Use the "alternative" feed rate specified
+            cutFeed = "F%i" % altfeed
+        else:
+            if self.options.generate_not_parametric_code: 
+                cutFeed = "F%i" % self.options.feed
+            else:
+                cutFeed = "F%i" % self.options.feed
+        
+        #This extension assumes that your copy of Inkscape is running at 90dpi (it is by default)
+        #R = mm per pixel
+        #R = 1 / dots per mm
+        #90dpi = 1 / (90 / 25.4)
+        gcode += ';Image '+str(curve['id'])+' pixel size: '+str(curve['width'])+'x'+str(curve['height'])+'\n'
+        gcode += 'M649 S'+str(laserPower)+' B2 D0 R0.2822 '+cutFeed+'\n'
+        gcode += 'G28\n'
+        gcode += 'G0 X'+str(curve['x'])+' Y'+str(curve['y'])+' '+cutFeed+'\n'
 
         #def get_chunks(arr, chunk_size = 51):
         def get_chunks(arr, chunk_size = 51):
@@ -883,14 +901,19 @@ class Gcode_tools(inkex.Effect):
                 
                 imageDataWidth, imageDataheight = img.size
                 #Resize to match the dimensions in Inkscape
-                #im_resized = img.resize((inkscapeWidth, inkscapeHeight), Image.ANTIALIAS)
+                im_resized = img.resize((inkscapeWidth, inkscapeHeight), Image.ANTIALIAS)
                 
-                #Resize the image here if needed for highter DPI
+                #Resize the image here for highter DPI - say 300dpi
                 #Compile the pixels.
-                pixels = list(img.getdata())
-                pixels = [pixels[i * imageDataWidth:(i + 1) * imageDataWidth] for i in xrange(imageDataheight)]
+                pixels = list(im_resized.getdata())
+                pixels = [pixels[i * inkscapeWidth:(i + 1) * inkscapeWidth] for i in xrange(inkscapeHeight)]
                 
                 path['type'] = "raster"
+                path['width'] = inkscapeWidth
+                path['height'] = inkscapeHeight
+                path['x'] = float(node.get("x"))
+                path['y'] = float(node.get("y"))
+                path['id'] = node.get("id")
                 path['data'] = pixels
                 
                 #inkex.errormsg(str(path))
