@@ -609,7 +609,7 @@ class Gcode_tools(inkex.Effect):
          
         #Do not remove these two lines, they're important. Will not raster correctly if feedrate is not set prior.
         #Move fast to point, cut at correct speed.
-        gcode += 'G0 X'+str(curve['x'])+' Y'+str(curve['y'])+' '+self.options.Mfeed+'\n'
+        gcode += 'G0 X'+str(curve['x'])+' Y'+str(curve['y'])+' F'+str(self.options.Mfeed)+'\n'
         gcode += 'G0 X'+str(curve['x'])+' Y'+str(curve['y'])+' '+cutFeed+'\n'
 
         #def get_chunks(arr, chunk_size = 51):
