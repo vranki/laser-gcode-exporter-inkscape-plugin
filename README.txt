@@ -19,6 +19,10 @@ though as Inkscape for Windows ships with a shitty version of Python that is
 missing imaging libraries. Must install Python 2.7 and PIL for image reading.
 Have a proof of concept running
 
+20-March-2015 - Added raster support for jpeg and png images. Currently they
+export at Inkscape's default DPI of 90, I'll have to upscale them to around
+300 next. Go burn some cool shit!
+
 Turnkey Laser Inkscape Gcode Export Plugin
 ------------------------------------------
 
