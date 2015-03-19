@@ -1,7 +1,7 @@
 About This Project
 ------------------
 
-Modified to output gcode that is compatible with K40 style laser cutter
+Modified to output gcode and raster image data that is compatible with K40 style laser cutter
 running Marlin (https://github.com/lansing-makers-network/buildlog-lasercutter-marlin).
 
 26-Feb-2015 - 2 hours : Forked from user ajfoul to extend functionality of smoothie  
