@@ -101,7 +101,7 @@ BIARC_STYLE = {
 # Inkscape group tag
 SVG_GROUP_TAG = inkex.addNS("g", "svg")
 SVG_PATH_TAG = inkex.addNS('path','svg')
-SVG_IMAGE_TAG = inkex.addNS('image')
+SVG_IMAGE_TAG = inkex.addNS('image', 'svg')
 SVG_LABEL_TAG = inkex.addNS("label", "inkscape")
 
 
@@ -465,21 +465,30 @@ class Gcode_tools(inkex.Effect):
 #                del p[dist[1]]
 #            p = np[:]        
 
-        lst = []
-        for subpath in path:
-            lst.append(
-                [[subpath[0][1][0]*xs, subpath[0][1][1]*ys], 'move', 0, 0]
-            )
-            for i in range(1,len(subpath)):
-                sp1 = [  [subpath[i-1][j][0]*xs, subpath[i-1][j][1]*ys] for j in range(3)]
-                sp2 = [  [subpath[i  ][j][0]*xs, subpath[i  ][j][1]*ys] for j in range(3)]
-                lst += biarc(sp1,sp2,0,0)
+        #Vector path data, cut from x to y in a line or curve
+        inkex.errormsg("Parsing data type : "+path[0]['type'])
+        
+        if(path[0]['type'] ==  "vector") :
+            lst = {}
+            lst['type'] = "vector"
+            lst['data'] = []
+            for subpath in path[0]['data']:
+                lst['data'].append(
+                    [[subpath[0][1][0]*xs, subpath[0][1][1]*ys], 'move', 0, 0]
+                )
+                for i in range(1,len(subpath)):
+                    sp1 = [  [subpath[i-1][j][0]*xs, subpath[i-1][j][1]*ys] for j in range(3)]
+                    sp2 = [  [subpath[i  ][j][0]*xs, subpath[i  ][j][1]*ys] for j in range(3)]
+                    lst['data'] += biarc(sp1,sp2,0,0)
 
-            lst.append(
-                [[subpath[-1][1][0]*xs, subpath[-1][1][1]*ys], 'end', 0, 0]
-            )
-
-        return lst
+                lst['data'].append(
+                    [[subpath[-1][1][0]*xs, subpath[-1][1][1]*ys], 'end', 0, 0]
+                )
+            return lst
+        #Raster image data, cut/burn left to right, drop down a line, repeat in reverse until completed.
+        else:
+            #No need to modify
+            return path[0]
 
     def draw_curve(self, curve, group=None, style=BIARC_STYLE):
         if group==None:
@@ -574,6 +583,132 @@ class Gcode_tools(inkex.Effect):
                 value = self.unitScale*(c[i]*m[i]+a[i])
                 args.append(s[i] + ("%f" % value) + s1[i])
         return " ".join(args)
+        
+        
+    def generate_raster_gcode(self, curve, laserPower, altfeed=None):
+        gcode = ''
+        forward = True
+        
+
+        #def get_chunks(arr, chunk_size = 51):
+        def get_chunks(arr, chunk_size = 51):
+            chunks  = [ arr[start:start+chunk_size] for start in range(0, len(arr), chunk_size)]
+            return chunks 
+
+        #return the last pixel that holds data.
+        def last_in_list(arr):
+            end = 0
+            for i in range(len(arr)):
+                if (arr[i] > 0):
+                    end = i
+                    
+            return end
+
+
+        #return the last pixel that holds data.
+        def first_in_list(arr):
+            end = 0
+            for i in range(len(arr)):
+                if (arr[i] == 0):
+                    end = i
+                if (arr[i] > 0):
+                    break
+                    
+            return end
+            
+        first = True   
+        row = curve['data'][::-1]   
+
+        previousRight = 99999999999
+        previousLeft  = 0
+        firstRow = True
+        
+        for index, rowData in enumerate(row):
+            #print "Line "+str(index+1)+" ="
+           
+            splitRight = 0
+            splitLeft = 0
+            
+            if(index+1 < len(row)):
+                # Determine where to split the lines.
+                ##################################################
+                
+                #If the left most pixel of the next row is earlier than the current row, then extend.
+                if(first_in_list(row[index +1]) > first_in_list(rowData)):
+                    splitLeft = first_in_list(rowData)
+                else:
+                    splitLeft = first_in_list(row[index +1])
+
+                #If the end pixel of the next line is later than the current line, extend.
+                if(last_in_list(row[index +1]) > last_in_list(rowData)):
+                    splitRight = last_in_list(row[index +1])
+                else:
+                    splitRight = last_in_list(rowData)
+                
+                #print "Prior Left cut = "+str(splitLeft)+" Right Cut == "+str(splitRight) 
+            else:
+                splitLeft = first_in_list(rowData)
+                splitRight = last_in_list(rowData)
+            
+                
+            #Positive direction
+            if forward:
+                #print "Forward!"
+                
+                #Split the right side.
+                ###########################################
+
+                #Don't split more than the start of the last row as we print in reverse for alternate lines
+                splitLeft = previousLeft
+                previousRight = splitRight
+                
+            #Negative direction
+            else:
+                #print "Backward!"
+                
+                #Split the left side.
+                ###########################################
+                
+                #Don't split more than the end of the last row as we print in reverse for alternate lines
+                splitRight = previousRight
+                previousLeft = splitLeft
+                    
+                
+            
+            #Exception to the rule : Don't split the left of the first row.
+            if(firstRow):
+                splitLeft = (previousLeft)
+                
+            firstRow = False
+            #print "After : Left cut = "+str(splitLeft)+" Right Cut == "+str(splitRight) 
+                
+            row2 = rowData[(splitLeft+1):(splitRight+1)]
+            
+            if not forward:
+                result_row = row2[::-1]
+            else:
+                result_row = row2
+                
+            
+            for chunk in get_chunks(result_row,51):
+                if first:
+                    if forward:
+                        gcode += ("\nG7 $1 ")
+                    else:
+                        gcode += ("\nG7 $0 ")
+                    first = not first
+                else:
+                    gcode +=  ("G7 ")
+                    
+                b64 = base64.b64encode("".join(chr(y) for y in chunk))
+                gcode += ("L"+str(len(b64))+" ")
+                gcode += ("D"+b64+ "\n")
+            forward = not forward
+            first = not first
+                
+        gcode += ("M5 \n");
+        
+        return gcode
     
     def generate_gcode(self, curve, depth, laserPower, altfeed=None, altppm=None):
         gcode = ''
@@ -606,8 +741,8 @@ class Gcode_tools(inkex.Effect):
 
         # The 'laser on' and 'laser off' m-codes get appended to the GCODE generation
         lg = 'G00'
-        for i in range(1,len(curve)):
-            s, si = curve[i-1], curve[i]
+        for i in range(1,len(curve['data'])):
+            s, si = curve['data'][i-1], curve['data'][i]
 
 			#G00 : Move with the laser off to a new point
             if s[1] == 'move':
@@ -698,6 +833,8 @@ class Gcode_tools(inkex.Effect):
         def compile_paths(node, trans):
             # Apply the object transform, along with the parent transformation
             mat = node.get('transform', None)
+            path = {}
+            
             if mat:
                 mat = simpletransform.parseTransform(mat)
                 trans = simpletransform.composeTransform(trans, mat)
@@ -706,18 +843,25 @@ class Gcode_tools(inkex.Effect):
                 # This is a path object
                 if (not node.get("d")): return []
                 csp = cubicsuperpath.parsePath(node.get("d"))
+                
+                path['type'] = "vector"
+                path['data'] = []
+                
                 if (trans):
                     simpletransform.applyTransformToPath(trans, csp)
-                return csp
+                    path['data'] = csp
+                return path
 
             elif node.tag == SVG_GROUP_TAG:
                 # This node is a group of other nodes
-                path = []
+                pathsGroup = []
                 for child in node.iterchildren():
-                    path += compile_paths(child, trans)
-                return path
-            else:
+                    pathsGroup += compile_paths(child, trans)
+                return pathsGroup
+            elif node.tag == SVG_IMAGE_TAG:
                 #inkex.errormsg( ) 
+                
+                #Work together to destroy
                 
                 #visit https://www.python.org/downloads/ and download python 2.7.9
                 #Install it
@@ -727,18 +871,34 @@ class Gcode_tools(inkex.Effect):
                 #pip install Pillow-2.7.0-cp27-none-win32.whl
                 #You're good to go!     
                 
-                #Export the image data.
-                width = int(float(node.get("width")))
-                height = int(float(node.get("height")))
-                data = str((node.get(inkex.addNS('href','xlink')) )).replace("data:image/jpeg;base64,","")
+                #Fetch the image Data
+                inkscapeWidth = int(float(node.get("width"))) 
+                inkscapeHeight = int(float(node.get("height")))
+                data = str((node.get(inkex.addNS('href','xlink')) )).replace("data:image/png;base64,","").replace("data:image/jpeg;base64,","")
                 im = Image.open(BytesIO(base64.b64decode(data))).convert('L')
-                img = ImageOps.invert(im)
-                pixels = list(im.getdata())
-                pixels = [pixels[i * width:(i + 1) * width] for i in xrange(height)]
                 
-                inkex.errormsg( str(pixels)) 
-
-            inkex.errormsg("skipping " + str(node.tag))
+                
+                img = ImageOps.invert(im)
+                inkex.errormsg( str(img.size)) 
+                
+                imageDataWidth, imageDataheight = img.size
+                #Resize to match the dimensions in Inkscape
+                #im_resized = img.resize((inkscapeWidth, inkscapeHeight), Image.ANTIALIAS)
+                
+                #Resize the image here if needed for highter DPI
+                #Compile the pixels.
+                pixels = list(img.getdata())
+                pixels = [pixels[i * imageDataWidth:(i + 1) * imageDataWidth] for i in xrange(imageDataheight)]
+                
+                path['type'] = "raster"
+                path['data'] = pixels
+                
+                #inkex.errormsg(str(path))
+                
+                return path
+            
+            
+            inkex.errormsg("skipping node " + str(node.tag))
             self.skipped += 1
             return []
 
@@ -789,13 +949,17 @@ class Gcode_tools(inkex.Effect):
                 if (node in selected):
                     logger.write("node %s" % str(node.tag))
                     selected.remove(node)
-                    pathList += compile_paths(node, trans)
+                    pathList.append(compile_paths(node, trans).copy())
                 else:
                     logger.write("skipping node %s" % node)
 
             if (not pathList):
                 logger.write("no objects in layer")
                 continue
+                
+            #inkex.errormsg(str(pathList))
+             
+            #Fetch the vector or raster data
             curve = self.parse_curve(pathList)
             
             #Determind the power of the laser that this layer should be cut at.
@@ -814,7 +978,6 @@ class Gcode_tools(inkex.Effect):
                 laserPower = float(laserPower) / 100
                 
 
-            # If there are several layers, start with a tool change operation
             #Turnkey : Always output the layer header for information.
             if (len(layers) > 0):
                 gcode += LASER_OFF+"\n"
@@ -828,8 +991,8 @@ class Gcode_tools(inkex.Effect):
                 gcode += ";(MSG,Starting layer '%s')\n\n" % layerName
                 # Move the laser into the starting position (so that way it is positioned
                 # for testing the power level, if the user wants to change that).
-                arg = curve[0]
-                pt = arg[0]
+                #arg = curve[0]
+                #pt = arg[0]
                 #gcode += "G00 " + self.make_args(pt) + "\n"
 
 
@@ -837,7 +1000,11 @@ class Gcode_tools(inkex.Effect):
                 self.draw_curve(curve)
                 
             #Generate the GCode for this layer
-            gcode += self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
+            if (curve['type'] == "vector"):
+                gcode += self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
+            elif (curve['type'] == "raster"):
+                gcode += self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
+                inkex.errormsg(("Pixels for raster here"))
 
         # If there are any objects left over, it's because they don't belong
         # to any inkscape layer (bug in inkscape?). Output those now.
