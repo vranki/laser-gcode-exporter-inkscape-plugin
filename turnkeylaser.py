@@ -466,13 +466,13 @@ class Gcode_tools(inkex.Effect):
 #            p = np[:]        
 
         #Vector path data, cut from x to y in a line or curve
-        inkex.errormsg("Parsing data type : "+path[0]['type'])
+        inkex.errormsg("Building gcode for "+path['type']+" type object." )
         
-        if(path[0]['type'] ==  "vector") :
+        if(path['type'] ==  "vector") :
             lst = {}
             lst['type'] = "vector"
             lst['data'] = []
-            for subpath in path[0]['data']:
+            for subpath in path['data']:
                 lst['data'].append(
                     [[subpath[0][1][0]*xs, subpath[0][1][1]*ys], 'move', 0, 0]
                 )
@@ -488,7 +488,7 @@ class Gcode_tools(inkex.Effect):
         #Raster image data, cut/burn left to right, drop down a line, repeat in reverse until completed.
         else:
             #No need to modify
-            return path[0]
+            return path
 
     def draw_curve(self, curve, group=None, style=BIARC_STYLE):
         if group==None:
@@ -603,7 +603,7 @@ class Gcode_tools(inkex.Effect):
         #R = mm per pixel
         #R = 1 / dots per mm
         #90dpi = 1 / (90 / 25.4)
-        gcode += ';Image '+str(curve['id'])+' pixel size: '+str(curve['width'])+'x'+str(curve['height'])+'\n'
+        gcode += '\n\n;Beginning of Raster Image '+str(curve['id'])+' pixel size: '+str(curve['width'])+'x'+str(curve['height'])+'\n'
         gcode += 'M649 S'+str(laserPower)+' B2 D0 R0.2822 '+cutFeed+'\n'
         gcode += 'G28\n'
         gcode += 'G0 X'+str(curve['x'])+' Y'+str(curve['y'])+' '+cutFeed+'\n'
@@ -725,6 +725,7 @@ class Gcode_tools(inkex.Effect):
             first = not first
                 
         gcode += ("M5 \n");
+        gcode += ';End of Raster Image '+str(curve['id'])+'\n\n'
         
         return gcode
     
@@ -896,8 +897,7 @@ class Gcode_tools(inkex.Effect):
                 im = Image.open(BytesIO(base64.b64decode(data))).convert('L')
                 
                 
-                img = ImageOps.invert(im)
-                inkex.errormsg( str(img.size)) 
+                img = ImageOps.invert(im) 
                 
                 imageDataWidth, imageDataheight = img.size
                 #Resize to match the dimensions in Inkscape
@@ -911,8 +911,9 @@ class Gcode_tools(inkex.Effect):
                 path['type'] = "raster"
                 path['width'] = inkscapeWidth
                 path['height'] = inkscapeHeight
-                path['x'] = float(node.get("x"))
-                path['y'] = float(node.get("y"))
+                path['x'] = self.unitScale*(float(node.get("x")) * 1)
+                #Add the height in px from inkscape from the image, as its top is measured from the origin top left, though in inkscape the origin is bottom left so we need to begin scanning the px at the bottom of the image for our laser bed.
+                path['y'] =  self.unitScale * ((float(node.get("y"))+float(node.get("height")))*-1+self.pageHeight)
                 path['id'] = node.get("id")
                 path['data'] = pixels
                 
@@ -980,10 +981,6 @@ class Gcode_tools(inkex.Effect):
                 logger.write("no objects in layer")
                 continue
                 
-            #inkex.errormsg(str(pathList))
-             
-            #Fetch the vector or raster data
-            curve = self.parse_curve(pathList)
             
             #Determind the power of the laser that this layer should be cut at.
             #If the layer is not named as an integer value then default to the laser intensity set at the export settings.
@@ -1017,17 +1014,20 @@ class Gcode_tools(inkex.Effect):
                 #arg = curve[0]
                 #pt = arg[0]
                 #gcode += "G00 " + self.make_args(pt) + "\n"
-
-
-            if (self.options.drawCurves):
-                self.draw_curve(curve)
-                
-            #Generate the GCode for this layer
-            if (curve['type'] == "vector"):
-                gcode += self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
-            elif (curve['type'] == "raster"):
-                gcode += self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
-                inkex.errormsg(("Pixels for raster here"))
+             
+            #Fetch the vector or raster data and turn it into GCode
+            for objectData in pathList:
+                curve = self.parse_curve(objectData)
+            
+                #Should the curves be drawn in inkscape?
+                if (self.options.drawCurves):
+                    self.draw_curve(curve)
+                    
+                #Generate the GCode for this layer
+                if (curve['type'] == "vector"):
+                    gcode += self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
+                elif (curve['type'] == "raster"):
+                    gcode += self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
 
         # If there are any objects left over, it's because they don't belong
         # to any inkscape layer (bug in inkscape?). Output those now.
@@ -1135,7 +1135,7 @@ class Gcode_tools(inkex.Effect):
             return
 
         if (self.skipped > 0):
-            inkex.errormsg(("Warning: skipped %d object(s) because they were not paths. Please convert them to paths using the menu 'Path->Object To Path'" % self.skipped))
+            inkex.errormsg(("Warning: skipped %d object(s) because they were not paths (Vectors) or images (Raster). Please convert them to paths using the menu 'Path->Object To Path'" % self.skipped))
 
 e = Gcode_tools()
 e.affect()
