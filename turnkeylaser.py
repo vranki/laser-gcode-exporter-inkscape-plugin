@@ -1020,11 +1020,13 @@ class Gcode_tools(inkex.Effect):
                 curve = self.parse_curve(objectData)
             
                 #Should the curves be drawn in inkscape?
-                if (self.options.drawCurves):
-                    self.draw_curve(curve)
+               
                     
                 #Generate the GCode for this layer
                 if (curve['type'] == "vector"):
+                    if (self.options.drawCurves):
+                        self.draw_curve(curve)
+                    
                     gcode += self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
                 elif (curve['type'] == "raster"):
                     gcode += self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
