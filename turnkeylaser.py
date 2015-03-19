@@ -604,8 +604,12 @@ class Gcode_tools(inkex.Effect):
         #R = 1 / dots per mm
         #90dpi = 1 / (90 / 25.4)
         gcode += '\n\n;Beginning of Raster Image '+str(curve['id'])+' pixel size: '+str(curve['width'])+'x'+str(curve['height'])+'\n'
-        gcode += 'M649 S'+str(laserPower)+' B2 D0 R0.2822 '+cutFeed+'\n'
+        gcode += 'M649 S'+str(laserPower)+' B2 D0 R0.2822\n'
         gcode += 'G28\n'
+         
+        #Do not remove these two lines, they're important. Will not raster correctly if feedrate is not set prior.
+        #Move fast to point, cut at correct speed.
+        gcode += 'G0 X'+str(curve['x'])+' Y'+str(curve['y'])+' '+self.options.Mfeed+'\n'
         gcode += 'G0 X'+str(curve['x'])+' Y'+str(curve['y'])+' '+cutFeed+'\n'
 
         #def get_chunks(arr, chunk_size = 51):
