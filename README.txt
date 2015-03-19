@@ -37,7 +37,7 @@ Installation
 
 Copy the files turnkeylaser.py and turnkeylaser.inx into your Inkscape extensions
 folder. Fire up inkscape and you will find the plugin under Extensions ->
-Export -> THLaser GCode Export.
+Export -> Turnkey Laser Exporter.
 
 Keyboard Shortcut
 -----------------
