@@ -1050,25 +1050,43 @@ class Gcode_tools(inkex.Effect):
             # Use the identity transform (eg no transform) for the root objects
             trans = simpletransform.parseTransform("")
             for node in selected:
-                pathList += compile_paths(node, trans)
+                try:
+                        pathList.append(compile_paths(node, trans).copy())                    
+                except:
+                    for objectData in compile_paths(node, trans):
+                        pathList.append(objectData)
 
-            if (pathList):
-                curve = self.parse_curve(pathList)
-                if (self.options.drawCurves):
-                    self.draw_curve(curve)
-
-                gcode += "\n;(*** Root objects ***)\n"
+            if (pathList):  
+                for objectData in pathList:
+                    
+                    curve = self.parse_curve(objectData)
                 
-                #Fetch the laser power from the export dialog box.
-                laserPower = self.options.laser
-                
-                #Switch between smoothie power levels and ramps+marlin power levels
-                #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
-                if (self.options.mainboard == 'smoothie'):
-                    laserPower = float(laserPower) / 100
-                
-                gcode += self.generate_gcode(curve, 0, laserPower)
-                
+                    
+                    #Determind the power of the laser that this layer should be cut at.
+                    #If the layer is not named as an integer value then default to the laser intensity set at the export settings.
+                    #Fetch the laser power from the export dialog box.
+                    laserPower = self.options.laser
+                    
+                    if (int(layerName) > 0 and int(layerName) <= 100):
+                        laserPower = int(layerName)
+                    else :
+                        laserPower = self.options.laser
+                    
+                    #Switch between smoothie power levels and ramps+marlin power levels
+                    #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
+                    if (self.options.mainboard == 'smoothie'):
+                        laserPower = float(laserPower) / 100
+                        
+                    #Generate the GCode for this layer
+                    if (curve['type'] == "vector"):
+                        #Should the curves be drawn in inkscape?
+                        if (self.options.drawCurves):
+                            self.draw_curve(curve)
+                        
+                        gcode += self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
+                    elif (curve['type'] == "raster"):
+                        gcode += self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
+                  
         if self.options.homeafter:
             gcode += "\n\nG00 X0 Y0 F4000 ; home"
                 
