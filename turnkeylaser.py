@@ -465,8 +465,6 @@ class Gcode_tools(inkex.Effect):
 #                del p[dist[1]]
 #            p = np[:]        
 
-        #Vector path data, cut from x to y in a line or curve
-        inkex.errormsg("Building gcode for "+path['type']+" type object." )
         
         if(path['type'] ==  "vector") :
             lst = {}
@@ -604,7 +602,7 @@ class Gcode_tools(inkex.Effect):
         #R = 1 / dots per mm
         #90dpi = 1 / (90 / 25.4)
         gcode += '\n\n;Beginning of Raster Image '+str(curve['id'])+' pixel size: '+str(curve['width'])+'x'+str(curve['height'])+'\n'
-        gcode += 'M649 S'+str(laserPower)+' B2 D0 R0.2822\n'
+        gcode += 'M649 S'+str(laserPower)+' B2 D0 R0.09406\n'
         gcode += 'G28\n'
          
         #Do not remove these two lines, they're important. Will not raster correctly if feedrate is not set prior.
@@ -639,6 +637,7 @@ class Gcode_tools(inkex.Effect):
             return end
             
         first = True   
+        #Flip the image top to bottom
         row = curve['data'][::-1]   
 
         previousRight = 99999999999
@@ -879,7 +878,8 @@ class Gcode_tools(inkex.Effect):
                 # This node is a group of other nodes
                 pathsGroup = []
                 for child in node.iterchildren():
-                    pathsGroup += compile_paths(child, trans)
+                    data = compile_paths(child, trans)
+                    pathsGroup.append(data.copy())
                 return pathsGroup
             elif node.tag == SVG_IMAGE_TAG:
                 #inkex.errormsg( ) 
@@ -905,12 +905,12 @@ class Gcode_tools(inkex.Effect):
                 
                 imageDataWidth, imageDataheight = img.size
                 #Resize to match the dimensions in Inkscape
-                im_resized = img.resize((inkscapeWidth, inkscapeHeight), Image.ANTIALIAS)
+                im_resized = img.resize((inkscapeWidth*3, inkscapeHeight*3), Image.ANTIALIAS)
                 
                 #Resize the image here for highter DPI - say 300dpi
                 #Compile the pixels.
                 pixels = list(im_resized.getdata())
-                pixels = [pixels[i * inkscapeWidth:(i + 1) * inkscapeWidth] for i in xrange(inkscapeHeight)]
+                pixels = [pixels[i * (inkscapeWidth*3):(i + 1) * (inkscapeWidth * 3)] for i in xrange(inkscapeHeight*3)]
                 
                 path['type'] = "raster"
                 path['width'] = inkscapeWidth
@@ -975,9 +975,17 @@ class Gcode_tools(inkex.Effect):
 
             for node in layer.iterchildren():
                 if (node in selected):
+                    #Vector path data, cut from x to y in a line or curve
+                    inkex.errormsg("Building gcode for "+str(node.tag)+" object." )
+                    
                     logger.write("node %s" % str(node.tag))
-                    selected.remove(node)
-                    pathList.append(compile_paths(node, trans).copy())
+                    selected.remove(node) 
+                    try:
+                        pathList.append(compile_paths(node, trans).copy())                    
+                    except:
+                        for objectData in compile_paths(node, trans):
+                            pathList.append(objectData)
+                    
                 else:
                     logger.write("skipping node %s" % node)
 
