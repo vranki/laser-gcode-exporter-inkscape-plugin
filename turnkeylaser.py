@@ -66,9 +66,11 @@ import copy
 import sys
 import time
 
+#Image processing for rastering
 import base64
 from PIL import Image
 import ImageOps
+import subprocess
 
 import getopt
 from io import BytesIO
@@ -835,6 +837,15 @@ class Gcode_tools(inkex.Effect):
         # Select the next available tool
         self.currentTool = (self.currentTool+1) % 32
         return gcode
+        
+    #Determine the tmp directory for the user's operating system.    
+    def getTmpPath(self):
+		"""Define the temporary folder path depending on the operating system"""
+
+		if os.name == 'nt':
+			return 'C:\\WINDOWS\\Temp\\'
+		else:
+			return '/tmp/'
 
     ################################################################################
     ###
@@ -867,6 +878,7 @@ class Gcode_tools(inkex.Effect):
                 csp = cubicsuperpath.parsePath(node.get("d"))
                 
                 path['type'] = "vector"
+                path['id'] = node.get("id")
                 path['data'] = []
                 
                 if (trans):
@@ -879,7 +891,11 @@ class Gcode_tools(inkex.Effect):
                 pathsGroup = []
                 for child in node.iterchildren():
                     data = compile_paths(child, trans)
-                    pathsGroup.append(data.copy())
+                    #inkex.errormsg(str(data))
+                    if type(data) is not list:
+                        pathsGroup.append(data.copy())
+                    else:
+                        pathsGroup += data
                 return pathsGroup
             elif node.tag == SVG_IMAGE_TAG:
                 #inkex.errormsg( ) 
@@ -899,8 +915,6 @@ class Gcode_tools(inkex.Effect):
                 inkscapeHeight = int(float(node.get("height")))
                 data = str((node.get(inkex.addNS('href','xlink')) )).replace("data:image/png;base64,","").replace("data:image/jpeg;base64,","")
                 im = Image.open(BytesIO(base64.b64decode(data))).convert('L')
-                
-                
                 img = ImageOps.invert(im) 
                 
                 imageDataWidth, imageDataheight = img.size
@@ -924,7 +938,40 @@ class Gcode_tools(inkex.Effect):
                 #inkex.errormsg(str(path))
                 
                 return path
-            
+            #The object isn't a path, and it's not an image. Convert it to an image to be rastered.
+            else :
+                tmp = self.getTmpPath() #OS tmp directory
+                bgcol = "#ffffff" #White
+                curfile = curfile = self.args[-1] #The current inkscape project we're exporting from.
+                command="inkscape --export-dpi 270 -i %s --export-id-only -e \"%stmpinkscapeexport.png\" -b \"%s\" %s" % (node.get("id"),tmp,bgcol,curfile) 
+        
+                p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                return_code = p.wait()
+                f = p.stdout
+                err = p.stderr
+                
+                #Fetch the image Data
+                filename = "%stmpinkscapeexport.png" % (tmp)
+                im = Image.open(filename).convert('L')
+                img = ImageOps.invert(im) 
+                
+                #Get the image size
+                imageDataWidth, imageDataheight = img.size
+                
+                #Compile the pixels.
+                pixels = list(img.getdata())
+                pixels = [pixels[i * (imageDataWidth):(i + 1) * (imageDataWidth)] for i in xrange(imageDataheight)]
+                
+                path['type'] = "raster"
+                path['width'] = imageDataWidth
+                path['height'] = imageDataheight
+                path['x'] = self.unitScale*(float(node.get("x")) * 1)
+                #Add the height in px from inkscape from the image, as its top is measured from the origin top left, though in inkscape the origin is bottom left so we need to begin scanning the px at the bottom of the image for our laser bed.
+                path['y'] =  self.unitScale * ((float(node.get("y"))+(float(imageDataheight)/3))*-1+self.pageHeight)
+                path['id'] = node.get("id")
+                path['data'] = pixels
+                
+                return path
             
             inkex.errormsg("skipping node " + str(node.tag))
             self.skipped += 1
@@ -976,14 +1023,19 @@ class Gcode_tools(inkex.Effect):
             for node in layer.iterchildren():
                 if (node in selected):
                     #Vector path data, cut from x to y in a line or curve
-                    inkex.errormsg("Building gcode for "+str(node.tag)+" object." )
                     
                     logger.write("node %s" % str(node.tag))
                     selected.remove(node) 
                     try:
-                        pathList.append(compile_paths(node, trans).copy())                    
+                        newPath = compile_paths(node, trans).copy();
+                        pathList.append(newPath)       
+                        inkex.errormsg("Built gcode for "+str(node.get("id"))+" - will be cut as %s." % (newPath['type']) )
                     except:
+                        messageOnce = True
                         for objectData in compile_paths(node, trans):
+                            #if (messageOnce):
+                            inkex.errormsg("Built gcode for group "+str(node.get("id"))+", item %s - will be cut as %s." % (objectData['id'], objectData['type']) )
+                                #messageOnce = False
                             pathList.append(objectData)
                     
                 else:
