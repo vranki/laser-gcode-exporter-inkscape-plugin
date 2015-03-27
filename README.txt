@@ -2,7 +2,7 @@ About This Project
 ------------------
 
 Modified to output gcode and raster image data that is compatible with K40 style laser cutter
-running Marlin (https://github.com/lansing-makers-network/buildlog-lasercutter-marlin).
+running Marlin (https://github.com/TurnkeyTyranny/buildlog-lasercutter-marlin).
 
 26-Feb-2015 - 2 hours : Forked from user ajfoul to extend functionality of smoothie  
 laser power levels 0.0 to 1.0, generic Marlin power levels being 0 to 100.
