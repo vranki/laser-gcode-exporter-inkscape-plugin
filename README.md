@@ -25,6 +25,7 @@ Usage and Setup
 Press CTRL+Shift+d, choose the tab called 'page' and set your project units in the 'custom size' area to be 'px'. You can set the 'Default Units' option to be mm, inch or px. The 'Default Units' are the ones displayed on your rulers.
 
 Name your layer in Inkscape like: 10 [feed=600,ppm=40]
+
 This will set the power level to 10%, the feedrate to 600mm per minute and will fire at 40 pulse per millimetre in 60us duration pulses. PPM is ignored for rasters.
 The ppm option is optional, if you do not specify it then the laser will default to continuous wave mode.
 If you do not name your layer in this way then the script will use the default settings specified in the dialog box.
