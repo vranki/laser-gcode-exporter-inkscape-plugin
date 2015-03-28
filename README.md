@@ -2,13 +2,12 @@ About This Project
 ------------------
 This project was intended to build and all in one exporting plugin for laser cutters and Inkscape 0.91.
 The project builds gcode that is compatible with a fork of Marlin designed to run on laser cutters found at https://github.com/TurnkeyTyranny/buildlog-lasercutter-marlin .
-The project is built on work by other people, thanks go out to the effort they put in before me. This script is released under the license GPL v2.
 
 Installation
 ------------
 
-Copy the files turnkeylaser.py and turnkeylaser.inx into your Inkscape extensions
-folder. Fire up inkscape and you will find the plugin under Extensions -> Export -> Turnkey Laser Exporter.
+Copy the files turnkeylaser.py and turnkeylaser.inx into your Inkscape extensions folder.
+Fire up inkscape and you will find the plugin under Extensions -> Export -> Turnkey Laser Exporter.
 
 This script relies on a more advanced version of the PIL library thank Inkscape for windows ships with. As such you need to follow these steps for windows installs of Inkscape 0.91 
 
@@ -25,10 +24,11 @@ Usage and Setup
 ---------------
 Press CTRL+Shift+d, choose the tab called 'page' and set your project units in the 'custom size' area to be 'px'. You can set the 'Default Units' option to be mm, inch or px. The 'Default Units' are the ones displayed on your rulers.
 
-Name your layer in Inkscape like: 10 [feed=600,ppm=40] 
+Name your layer in Inkscape like: 10 [feed=600,ppm=40]
 This will set the power level to 10%, the feedrate to 600mm per minute and will fire at 40 pulse per millimetre in 60us duration pulses. PPM is ignored for rasters.
 The ppm option is optional, if you do not specify it then the laser will default to continuous wave mode.
 If you do not name your layer in this way then the script will use the default settings specified in the dialog box.
+
 
 When you're ready to export your objects, images or paths just select the items you would like to be exported by dragging over them or holding shift to select multiple and then run the plugin under under Extensions Menu -> Export -> Turnkey Laser Exporter. 
 
@@ -55,6 +55,12 @@ If that file doesn't exist, create it and include the following:
 display="true"/>
 </keys>
 
+
+Attribution
+--------------------
+The project is built on work by other people, thanks go out to the effort they put in before me.
+Thanks to work by https://github.com/ajfoul , Thinkhaus and Lansing Makers Network
+This script is released under the license GPL v2.
 
 Change log
 --------------------
