@@ -2,6 +2,7 @@ About This Project
 ------------------
 This project was intended to build and all in one exporting plugin for laser cutters and Inkscape 0.91.
 The project builds gcode that is compatible with a fork of Marlin designed to run on laser cutters found at https://github.com/TurnkeyTyranny/buildlog-lasercutter-marlin .
+
 You can contact me via email at : 394ad2f@gmail.com
 
 
