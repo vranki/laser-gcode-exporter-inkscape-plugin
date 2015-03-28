@@ -49,6 +49,11 @@ G1 : Move to a new location with the laser on.
 G2 : Move in a Clockwise Arc   
 G3 : Move in a Counter Clockwise Arc
 Name your layer like 10 [feed=600,ppm=40] for 10% power, 600mm per minute cut and 40 pulse per millimetre at 60ms duration
+
+Changelog 2015-03-27
+Changelog 2015-03-28
+Fixed many many bugs, completed the work on exporting objects and images as rasters.
+Fixed up as many situations I could find that threw python error messages and replaced them with meaningful notices for the user.
 """
 
 ###
@@ -550,8 +555,10 @@ class Gcode_tools(inkex.Effect):
             else:
                 self.footer = FOOTER_TEXT
         else: 
-            inkex.errormsg(("Directory does not exist!"))
-            return
+            inkex.errormsg(("Directory specified for output gcode does not exist! Please create it."))
+            return False
+        
+        return True
 
     # Turns a list of arguments into gcode-style parameters (eg (1, 2, 3) -> "X1 Y2 Z3"),
     # taking scaling, offsets and the "parametric curve" setting into account
@@ -1003,13 +1010,14 @@ class Gcode_tools(inkex.Effect):
             # Parse the layer label text, which consists of the layer name followed
             # by an optional number of arguments in square brackets.
             try:
+                originalLayerName = label
                 (layerName, layerParams) = parse_layer_name(label)
             except ValueError,e:
-                inkex.errormsg(str(e))
+                inkex.errormsg("Your inkscape layer is named incorrectly. Please use the format '20 [ppm=40,feed=300]' without the quotes. This would set the power at 20%, cutting at 300mm per minute at a pulse rate of 40 pulse per millimetre. The ppm option is optional, leaving it out will set the laser to continuous wave mode.")
                 return
 
             # Check if the layer specifies an alternative (from the default) feed rate
-            altfeed = layerParams.get("feed", None)
+            altfeed = layerParams.get("feed", self.options.feed)
             altppm = layerParams.get("ppm", None)
 
             logger.write("layer %s" % layerName)
@@ -1051,10 +1059,16 @@ class Gcode_tools(inkex.Effect):
             #Fetch the laser power from the export dialog box.
             laserPower = self.options.laser
             
-            if (int(layerName) > 0 and int(layerName) <= 100):
-                laserPower = int(layerName)
-            else :
+            try:
+                if (int(layerName) > 0 and int(layerName) <= 100):
+                    laserPower = int(layerName)
+                else :
+                    laserPower = self.options.laser
+            except ValueError,e:
                 laserPower = self.options.laser
+                inkex.errormsg("Unable to parse power level for layer name. Using default power level %d percent." % (self.options.laser))
+                
+            
             
             #Switch between smoothie power levels and ramps+marlin power levels
             #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
@@ -1067,12 +1081,13 @@ class Gcode_tools(inkex.Effect):
                 gcode += LASER_OFF+"\n"
                 size = 60
                 gcode += ";(%s)\n" % ("*"*size)
-                gcode += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (layerName)
+                gcode += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (originalLayerName)
                 gcode += (";(***** Laser Power: %%-%ds *****)\n" % (size-25)) % (laserPower)
                 gcode += (";(***** Feed Rate: %%-%ds *****)\n" % (size-23)) % (altfeed)
-                gcode += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
+                if(altppm):
+                    gcode += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
                 gcode += ";(%s)\n" % ("*"*size)
-                gcode += ";(MSG,Starting layer '%s')\n\n" % layerName
+                gcode += ";(MSG,Starting layer '%s')\n\n" % originalLayerName
                 # Move the laser into the starting position (so that way it is positioned
                 # for testing the power level, if the user wants to change that).
                 #arg = curve[0]
@@ -1150,7 +1165,13 @@ class Gcode_tools(inkex.Effect):
         selected = self.selected.values()
 
         root = self.document.getroot()
-        self.pageHeight = float(root.get("height", None))
+        #See if the user has the document setup in mm or pixels.
+        try:
+            self.pageHeight = float(root.get("height", None))                           
+        except:
+            inkex.errormsg(("Please change your inkscape project units to be in pixels, not inches or mm. In Inkscape press ctrl+shift+d and change 'units' on the page tab to px. The option 'default units' can be set to mm or inch, these are the units displayed on your rulers."))
+            return
+        
         self.flipArcs = (self.options.Xscale*self.options.Yscale < 0)
         self.currentTool = 0
 
@@ -1164,14 +1185,16 @@ class Gcode_tools(inkex.Effect):
             self.filename += GCODE_EXTENSION
 
         logger.enabled = self.options.logging
-        logger.write("thlaser script started")
+        logger.write("Laser script started")
         logger.write("output file == %s" % self.options.file)
 
         if len(selected)<=0:
             inkex.errormsg(("This extension requires at least one selected path."))
             return
 
-        self.check_dir()
+        dirExists = self.check_dir()
+        if (not dirExists):
+            return
 
         gcode = self.header;
 
