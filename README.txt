@@ -2,7 +2,7 @@ About This Project
 ------------------
 This project was intended to build and all in one exporting plugin for laser cutters and Inkscape 0.91.
 The project builds gcode that is compatible with a fork of Marlin designed to run on laser cutters found at https://github.com/TurnkeyTyranny/buildlog-lasercutter-marlin .
-The project is build on work by other people, thank you to the effort they put in before me. This script is released under the license GPL v2.
+The project is built on work by other people, thanks go out to the effort they put in before me. This script is released under the license GPL v2.
 
 Installation
 ------------
@@ -26,7 +26,7 @@ Usage and Setup
 Press CTRL+Shift+d, choose the tab called 'page' and set your project units in the 'custom size' area to be 'px'. You can set the 'Default Units' option to be mm, inch or px. The 'Default Units' are the ones displayed on your rulers.
 
 Name your layer in Inkscape like: 10 [feed=600,ppm=40] 
-This will set the power level to 10%, the feedrate to 600mm per minute and will fire at 40 pulse per millimetre in 60us duration pulses.
+This will set the power level to 10%, the feedrate to 600mm per minute and will fire at 40 pulse per millimetre in 60us duration pulses. PPM is ignored for rasters.
 The ppm option is optional, if you do not specify it then the laser will default to continuous wave mode.
 If you do not name your layer in this way then the script will use the default settings specified in the dialog box.
 
