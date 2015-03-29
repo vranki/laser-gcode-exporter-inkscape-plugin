@@ -646,8 +646,11 @@ class Gcode_tools(inkex.Effect):
             return end
             
         first = True   
-        #Flip the image top to bottom
-        row = curve['data'][::-1]   
+        #Flip the image left to right.
+        #row = curve['data'][::-1] 
+        
+        #Turnkey - 29/3/15 - No more flipping.
+        row = curve['data']
 
         previousRight = 99999999999
         previousLeft  = 0
