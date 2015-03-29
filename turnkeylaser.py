@@ -907,7 +907,46 @@ class Gcode_tools(inkex.Effect):
                     else:
                         pathsGroup += data
                 return pathsGroup
-            elif node.tag == SVG_IMAGE_TAG:
+            
+            else :
+                if(node.get("x") > 0):
+                    tmp = self.getTmpPath() #OS tmp directory
+                    bgcol = "#ffffff" #White
+                    curfile = curfile = self.args[-1] #The current inkscape project we're exporting from.
+                    command="inkscape --export-dpi 270 -i %s --export-id-only -e \"%stmpinkscapeexport.png\" -b \"%s\" %s" % (node.get("id"),tmp,bgcol,curfile) 
+            
+                    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    return_code = p.wait()
+                    f = p.stdout
+                    err = p.stderr
+                    
+                    #Fetch the image Data
+                    filename = "%stmpinkscapeexport.png" % (tmp)
+                    im = Image.open(filename).convert('L')
+                    img = ImageOps.invert(im) 
+                    
+                    #Get the image size
+                    imageDataWidth, imageDataheight = img.size
+                    
+                    #Compile the pixels.
+                    pixels = list(img.getdata())
+                    pixels = [pixels[i * (imageDataWidth):(i + 1) * (imageDataWidth)] for i in xrange(imageDataheight)]
+                    
+                    path['type'] = "raster"
+                    path['width'] = imageDataWidth
+                    path['height'] = imageDataheight
+                    path['x'] = self.unitScale*(float(node.get("x")) * 1)
+                    #Add the height in px from inkscape from the image, as its top is measured from the origin top left, though in inkscape the origin is bottom left so we need to begin scanning the px at the bottom of the image for our laser bed.
+                    path['y'] =  self.unitScale * ((float(node.get("y"))+(float(imageDataheight)/3))*-1+self.pageHeight)
+                    path['id'] = node.get("id")
+                    path['data'] = pixels
+                
+                    return path
+                else:
+                    inkex.errormsg("Unable to generate raster for object " + str(node.get("id"))+" as it does not have an x-y coordinate associated.")
+            
+            """
+                elif node.tag == SVG_IMAGE_TAG:
                 #inkex.errormsg( ) 
                 
                 #Work together to destroy
@@ -949,42 +988,7 @@ class Gcode_tools(inkex.Effect):
                 
                 return path
             #The object isn't a path, and it's not an image. Convert it to an image to be rastered.
-            else :
-                if(node.get("x") > 0):
-                    tmp = self.getTmpPath() #OS tmp directory
-                    bgcol = "#ffffff" #White
-                    curfile = curfile = self.args[-1] #The current inkscape project we're exporting from.
-                    command="inkscape --export-dpi 270 -i %s --export-id-only -e \"%stmpinkscapeexport.png\" -b \"%s\" %s" % (node.get("id"),tmp,bgcol,curfile) 
-            
-                    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    return_code = p.wait()
-                    f = p.stdout
-                    err = p.stderr
-                    
-                    #Fetch the image Data
-                    filename = "%stmpinkscapeexport.png" % (tmp)
-                    im = Image.open(filename).convert('L')
-                    img = ImageOps.invert(im) 
-                    
-                    #Get the image size
-                    imageDataWidth, imageDataheight = img.size
-                    
-                    #Compile the pixels.
-                    pixels = list(img.getdata())
-                    pixels = [pixels[i * (imageDataWidth):(i + 1) * (imageDataWidth)] for i in xrange(imageDataheight)]
-                    
-                    path['type'] = "raster"
-                    path['width'] = imageDataWidth
-                    path['height'] = imageDataheight
-                    path['x'] = self.unitScale*(float(node.get("x")) * 1)
-                    #Add the height in px from inkscape from the image, as its top is measured from the origin top left, though in inkscape the origin is bottom left so we need to begin scanning the px at the bottom of the image for our laser bed.
-                    path['y'] =  self.unitScale * ((float(node.get("y"))+(float(imageDataheight)/3))*-1+self.pageHeight)
-                    path['id'] = node.get("id")
-                    path['data'] = pixels
-                
-                    return path
-                else:
-                    inkex.errormsg("Unable to generate raster for object " + str(node.get("id"))+" as it does not have an x-y coordinate associated.")
+            """
             
             inkex.errormsg("skipping node " + str(node.get("id")))
             self.skipped += 1
