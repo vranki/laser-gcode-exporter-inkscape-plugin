@@ -947,40 +947,43 @@ class Gcode_tools(inkex.Effect):
                 return path
             #The object isn't a path, and it's not an image. Convert it to an image to be rastered.
             else :
-                tmp = self.getTmpPath() #OS tmp directory
-                bgcol = "#ffffff" #White
-                curfile = curfile = self.args[-1] #The current inkscape project we're exporting from.
-                command="inkscape --export-dpi 270 -i %s --export-id-only -e \"%stmpinkscapeexport.png\" -b \"%s\" %s" % (node.get("id"),tmp,bgcol,curfile) 
-        
-                p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                return_code = p.wait()
-                f = p.stdout
-                err = p.stderr
-                
-                #Fetch the image Data
-                filename = "%stmpinkscapeexport.png" % (tmp)
-                im = Image.open(filename).convert('L')
-                img = ImageOps.invert(im) 
-                
-                #Get the image size
-                imageDataWidth, imageDataheight = img.size
-                
-                #Compile the pixels.
-                pixels = list(img.getdata())
-                pixels = [pixels[i * (imageDataWidth):(i + 1) * (imageDataWidth)] for i in xrange(imageDataheight)]
-                
-                path['type'] = "raster"
-                path['width'] = imageDataWidth
-                path['height'] = imageDataheight
-                path['x'] = self.unitScale*(float(node.get("x")) * 1)
-                #Add the height in px from inkscape from the image, as its top is measured from the origin top left, though in inkscape the origin is bottom left so we need to begin scanning the px at the bottom of the image for our laser bed.
-                path['y'] =  self.unitScale * ((float(node.get("y"))+(float(imageDataheight)/3))*-1+self.pageHeight)
-                path['id'] = node.get("id")
-                path['data'] = pixels
-                
-                return path
+                if(node.get("x") > 0):
+                    tmp = self.getTmpPath() #OS tmp directory
+                    bgcol = "#ffffff" #White
+                    curfile = curfile = self.args[-1] #The current inkscape project we're exporting from.
+                    command="inkscape --export-dpi 270 -i %s --export-id-only -e \"%stmpinkscapeexport.png\" -b \"%s\" %s" % (node.get("id"),tmp,bgcol,curfile) 
             
-            inkex.errormsg("skipping node " + str(node.tag))
+                    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    return_code = p.wait()
+                    f = p.stdout
+                    err = p.stderr
+                    
+                    #Fetch the image Data
+                    filename = "%stmpinkscapeexport.png" % (tmp)
+                    im = Image.open(filename).convert('L')
+                    img = ImageOps.invert(im) 
+                    
+                    #Get the image size
+                    imageDataWidth, imageDataheight = img.size
+                    
+                    #Compile the pixels.
+                    pixels = list(img.getdata())
+                    pixels = [pixels[i * (imageDataWidth):(i + 1) * (imageDataWidth)] for i in xrange(imageDataheight)]
+                    
+                    path['type'] = "raster"
+                    path['width'] = imageDataWidth
+                    path['height'] = imageDataheight
+                    path['x'] = self.unitScale*(float(node.get("x")) * 1)
+                    #Add the height in px from inkscape from the image, as its top is measured from the origin top left, though in inkscape the origin is bottom left so we need to begin scanning the px at the bottom of the image for our laser bed.
+                    path['y'] =  self.unitScale * ((float(node.get("y"))+(float(imageDataheight)/3))*-1+self.pageHeight)
+                    path['id'] = node.get("id")
+                    path['data'] = pixels
+                
+                    return path
+                else:
+                    inkex.errormsg("Unable to generate raster for object " + str(node.get("id"))+" as it does not have an x-y coordinate associated.")
+            
+            inkex.errormsg("skipping node " + str(node.get("id")))
             self.skipped += 1
             return []
 
@@ -1034,6 +1037,8 @@ class Gcode_tools(inkex.Effect):
                     
                     logger.write("node %s" % str(node.tag))
                     selected.remove(node) 
+                        
+                        
                     try:
                         newPath = compile_paths(node, trans).copy();
                         pathList.append(newPath)       
@@ -1088,11 +1093,7 @@ class Gcode_tools(inkex.Effect):
                     gcode += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
                 gcode += ";(%s)\n" % ("*"*size)
                 gcode += ";(MSG,Starting layer '%s')\n\n" % originalLayerName
-                # Move the laser into the starting position (so that way it is positioned
-                # for testing the power level, if the user wants to change that).
-                #arg = curve[0]
-                #pt = arg[0]
-                #gcode += "G00 " + self.make_args(pt) + "\n"
+
              
             #Fetch the vector or raster data and turn it into GCode
             for objectData in pathList:
@@ -1110,6 +1111,8 @@ class Gcode_tools(inkex.Effect):
                 elif (curve['type'] == "raster"):
                     gcode += self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
 
+                    
+        #Turnkey - Need to figure out why inkscape sometimes gets to this point and hasn't found the objects above.            
         # If there are any objects left over, it's because they don't belong
         # to any inkscape layer (bug in inkscape?). Output those now.
         if (selected):
@@ -1118,12 +1121,32 @@ class Gcode_tools(inkex.Effect):
             trans = simpletransform.parseTransform("")
             for node in selected:
                 try:
-                        pathList.append(compile_paths(node, trans).copy())                    
+                    newPath = compile_paths(node, trans).copy();
+                    pathList.append(newPath)       
+                    inkex.errormsg("Built gcode for "+str(node.get("id"))+" - will be cut as %s." % (newPath['type']) )
                 except:
+                    messageOnce = True
                     for objectData in compile_paths(node, trans):
+                        #if (messageOnce):
+                        inkex.errormsg("Built gcode for group "+str(node.get("id"))+", item %s - will be cut as %s." % (objectData['id'], objectData['type']) )
+                            #messageOnce = False
                         pathList.append(objectData)
 
             if (pathList):  
+            
+                #Turnkey : Always output the layer header for information.
+                if (len(layers) > 0):
+                    gcode += LASER_OFF+"\n"
+                    size = 60
+                    gcode += ";(%s)\n" % ("*"*size)
+                    gcode += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (originalLayerName)
+                    gcode += (";(***** Laser Power: %%-%ds *****)\n" % (size-25)) % (laserPower)
+                    gcode += (";(***** Feed Rate: %%-%ds *****)\n" % (size-23)) % (altfeed)
+                    if(altppm):
+                        gcode += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
+                    gcode += ";(%s)\n" % ("*"*size)
+                    gcode += ";(MSG,Starting layer '%s')\n\n" % originalLayerName
+                
                 for objectData in pathList:
                     
                     curve = self.parse_curve(objectData)
@@ -1134,10 +1157,14 @@ class Gcode_tools(inkex.Effect):
                     #Fetch the laser power from the export dialog box.
                     laserPower = self.options.laser
                     
-                    if (int(layerName) > 0 and int(layerName) <= 100):
-                        laserPower = int(layerName)
-                    else :
+                    try:
+                        if (int(layerName) > 0 and int(layerName) <= 100):
+                            laserPower = int(layerName)
+                        else :
+                            laserPower = self.options.laser
+                    except ValueError,e:
                         laserPower = self.options.laser
+                        inkex.errormsg("Unable to parse power level for layer name. Using default power level %d percent." % (self.options.laser))
                     
                     #Switch between smoothie power levels and ramps+marlin power levels
                     #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
@@ -1218,7 +1245,9 @@ class Gcode_tools(inkex.Effect):
             gcode += "G28 ; home all\n\n"
 
         #if self.options.function == 'Curve':
-        gcode += self.effect_curve(selected)
+        data = self.effect_curve(selected)
+        if data:
+            gcode += data
 
         if (self.options.double_sided_cutting):
             gcode += "\n\n;(MSG,Please flip over material)\n\n"
@@ -1246,4 +1275,5 @@ class Gcode_tools(inkex.Effect):
 
 e = Gcode_tools()
 e.affect()
+inkex.errormsg("Finished processing.")
 
