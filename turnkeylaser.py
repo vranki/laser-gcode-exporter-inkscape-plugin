@@ -1043,6 +1043,7 @@ class Gcode_tools(inkex.Effect):
 
         # Loop over the layers and objects
         gcode = ""
+        gcode_raster = ""
         for layer in layers:
             label = layer.get(SVG_LABEL_TAG).strip()
             if (label.startswith("#")):
@@ -1123,35 +1124,34 @@ class Gcode_tools(inkex.Effect):
                 laserPower = float(laserPower) / 100
                 
 
-            #Turnkey : Always output the layer header for information.
-            if (len(layers) > 0):
-                gcode += LASER_OFF+"\n"
-                size = 60
-                gcode += ";(%s)\n" % ("*"*size)
-                gcode += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (originalLayerName)
-                gcode += (";(***** Laser Power: %%-%ds *****)\n" % (size-25)) % (laserPower)
-                gcode += (";(***** Feed Rate: %%-%ds *****)\n" % (size-23)) % (altfeed)
-                if(altppm):
-                    gcode += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
-                gcode += ";(%s)\n" % ("*"*size)
-                gcode += ";(MSG,Starting layer '%s')\n\n" % originalLayerName
-
-             
             #Fetch the vector or raster data and turn it into GCode
             for objectData in pathList:
                 curve = self.parse_curve(objectData)
             
-                #Should the curves be drawn in inkscape?
+                header_data = ""
                
+                #Turnkey : Always output the layer header for information.
+                if (len(layers) > 0):
+                    header_data += LASER_OFF+"\n"
+                    size = 60
+                    header_data += ";(%s)\n" % ("*"*size)
+                    header_data += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (originalLayerName)
+                    header_data += (";(***** Laser Power: %%-%ds *****)\n" % (size-25)) % (laserPower)
+                    header_data += (";(***** Feed Rate: %%-%ds *****)\n" % (size-23)) % (altfeed)
+                    if(altppm):
+                        header_data += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
+                    header_data += ";(%s)\n" % ("*"*size)
+                    header_data += ";(MSG,Starting layer '%s')\n\n" % originalLayerName
                     
                 #Generate the GCode for this layer
                 if (curve['type'] == "vector"):
+                    #Should the curves be drawn in inkscape?
                     if (self.options.drawCurves):
                         self.draw_curve(curve)
                     
-                    gcode += self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
+                    gcode += header_data+self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
                 elif (curve['type'] == "raster"):
-                    gcode += self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
+                    gcode_raster += header_data+self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
 
                     
         #Turnkey - Need to figure out why inkscape sometimes gets to this point and hasn't found the objects above.            
@@ -1176,23 +1176,25 @@ class Gcode_tools(inkex.Effect):
 
             if (pathList):  
             
-                #Turnkey : Always output the layer header for information.
-                if (len(layers) > 0):
-                    gcode += LASER_OFF+"\n"
-                    size = 60
-                    gcode += ";(%s)\n" % ("*"*size)
-                    gcode += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (originalLayerName)
-                    gcode += (";(***** Laser Power: %%-%ds *****)\n" % (size-25)) % (laserPower)
-                    gcode += (";(***** Feed Rate: %%-%ds *****)\n" % (size-23)) % (altfeed)
-                    if(altppm):
-                        gcode += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
-                    gcode += ";(%s)\n" % ("*"*size)
-                    gcode += ";(MSG,Starting layer '%s')\n\n" % originalLayerName
+                
                 
                 for objectData in pathList:
                     
                     curve = self.parse_curve(objectData)
                 
+                    header_data = ""
+                    #Turnkey : Always output the layer header for information.
+                    if (len(layers) > 0):
+                        header_data += LASER_OFF+"\n"
+                        size = 60
+                        header_data += ";(%s)\n" % ("*"*size)
+                        header_data += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (originalLayerName)
+                        header_data += (";(***** Laser Power: %%-%ds *****)\n" % (size-25)) % (laserPower)
+                        header_data += (";(***** Feed Rate: %%-%ds *****)\n" % (size-23)) % (altfeed)
+                        if(altppm):
+                            header_data += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
+                        header_data += ";(%s)\n" % ("*"*size)
+                        header_data += ";(MSG,Starting layer '%s')\n\n" % originalLayerName
                     
                     #Determind the power of the laser that this layer should be cut at.
                     #If the layer is not named as an integer value then default to the laser intensity set at the export settings.
@@ -1219,13 +1221,17 @@ class Gcode_tools(inkex.Effect):
                         if (self.options.drawCurves):
                             self.draw_curve(curve)
                         
-                        gcode += self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
+                        gcode += header_data+self.generate_gcode(curve, 0, laserPower, altfeed=altfeed, altppm=altppm)
                     elif (curve['type'] == "raster"):
-                        gcode += self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
+                        gcode_raster += header_data+self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
                   
         if self.options.homeafter:
             gcode += "\n\nG00 X0 Y0 F4000 ; home"
-                
+       
+       
+        #Always raster before vector cutting.
+        gcode = gcode_raster+"\n\n"+gcode
+        
         return gcode
 
     def effect(self):
@@ -1279,6 +1285,7 @@ class Gcode_tools(inkex.Effect):
 
         if not self.options.generate_not_parametric_code:
             gcode += """
+; Raster data will always precede vector data           
 ; Default Cut Feedrate %i mm per minute
 ; Default Move Feedrate %i mm per minute
 ; Default Laser Intensity %i percent\n""" % (self.options.feed, self.options.Mfeed, self.options.laser)
