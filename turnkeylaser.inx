@@ -52,6 +52,11 @@ For the latest revision please visit https://github.com/TurnkeyTyranny/laser-gco
         </page>
         
         <page name='tab' _gui-text='Preferences'>
+            <param name="origin" type="enum" _gui-text="Y Axis Origin: ">
+                <item value="topleft">Top Left</item>
+                <item value="bottomright">Bottom Left</item>
+            </param>
+            <_param name="help" type="description">Choose the location your laser head parks at home and cuts from</_param>
             <param name="filename" type="string" _gui-text="File name: ">output.g</param>
             <param name="directory" type="string" _gui-text="Directory: "></param>
             <_param name="help" type="description">(blank is your desktop)</_param>
