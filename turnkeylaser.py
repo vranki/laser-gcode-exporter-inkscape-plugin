@@ -961,7 +961,7 @@ class Gcode_tools(inkex.Effect):
                         csp = [float(node.get("x")),float(node.get("y"))]
                         simpletransform.applyTransformToPoint(trans, csp )
                         x,y = csp
-                    x = ((x-(strokeWidth/2)+float(trans[0][2])) * 1)
+                    x = ((x-(strokeWidth/2)) * 1)
                     
                     #Add the height in px from inkscape from the image, as its top is measured from the origin top left, though in inkscape the origin is bottom left so we need to begin scanning the px at the bottom of the image for our laser bed.
                     if(node.tag == SVG_IMAGE_TAG):
