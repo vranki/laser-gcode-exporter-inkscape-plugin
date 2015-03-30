@@ -953,25 +953,41 @@ class Gcode_tools(inkex.Effect):
                                 rgb = simplestyle.parseColor(style['stroke'])
                                 strokeWidth = float(style['stroke-width'])
                     
-                    path['x'] = self.unitScale*(float(node.get("x"))-(strokeWidth/2) * 1)
+                    
+                    #Transform is needed from the layer
+                    y = 0
+                    x = 0
+                    if (trans):
+                        csp = [float(node.get("x")),float(node.get("y"))]
+                        simpletransform.applyTransformToPoint(trans, csp )
+                        x,y = csp
+                    x = ((x-(strokeWidth/2)+float(trans[0][2])) * 1)
                     
                     #Add the height in px from inkscape from the image, as its top is measured from the origin top left, though in inkscape the origin is bottom left so we need to begin scanning the px at the bottom of the image for our laser bed.
                     if(node.tag == SVG_IMAGE_TAG):
                         #Strokes on images in inkscape aren't shown, so don't account for them.
-                        path['y'] =  self.unitScale * ((float(node.get("y"))+float(node.get("height")))*-1+self.pageHeight)
+                        y =  ((float(node.get("y"))+float(node.get("height"))+float(trans[1][2]))*-1+self.pageHeight)
                     elif(node.tag == SVG_TEXT_TAG):
                         #The multiplier is a little fudging, raster may be out on the y coordinate by 0.5mm for very large rasters. Text doesn't seem to convert exactly.
-                        y = ((float(node.get("y"))-(strokeWidth/2))*-1+self.pageHeight)          
+                        y = ((float(node.get("y"))-(strokeWidth/2)+float(trans[1][2]))*-1+self.pageHeight)          
                         y =  y - ( y * 1.0063074911335007855200895586976 - y)      
-                        path['y'] = self.unitScale * y
                         
-                        x = (float(node.get("x"))-(strokeWidth/2) * 1)
-                        x =  x - ( y * 1.0063074911335007855200895586976 - y)      
-                        path['x'] = self.unitScale * x
+                        x = (float(node.get("x"))-(strokeWidth/2)+float(trans[0][2]) * 1)
+                        x =  x - ( x * 1.0063074911335007855200895586976 - x)      
                     else:
-                        y = ((float(node.get("y"))+(float(imageDataheight)/3)-(strokeWidth/2))*-1+self.pageHeight)                   
-                        path['y'] = self.unitScale * y
+                        y = ((y+(float(imageDataheight)/3)-(strokeWidth/2)+float(trans[1][2]))*-1+self.pageHeight)                   
+                        
                     
+                    #Convert from pixels to mm
+                    path['x'] = self.unitScale * float(str("%.5f") %(x))
+                    path['y'] = self.unitScale * float(str("%.5f") %(y))
+                    
+                    #Do not permit being < 0
+                    if(path['y'] < 0):
+                        path['y'] = 0
+                        
+                    if(path['x'] < 0):
+                        path['x'] = 0
                     
                     path['id'] = node.get("id")
                     path['data'] = pixels
