@@ -54,6 +54,9 @@ Changelog 2015-03-27
 Changelog 2015-03-28
 Fixed many many bugs, completed the work on exporting objects and images as rasters.
 Fixed up as many situations I could find that threw python error messages and replaced them with meaningful notices for the user.
+
+Changelog 2015-03-30
+Accounts for strokes on objects. Conditional raster export as some items in inkscape are positioned strangely.
 """
 
 ###
@@ -76,6 +79,7 @@ import base64
 from PIL import Image
 import ImageOps
 import subprocess
+import simplestyle
 
 import getopt
 from io import BytesIO
@@ -99,16 +103,17 @@ HEADER_TEXT = ""
 FOOTER_TEXT = ""
 
 BIARC_STYLE = {
-        'biarc0':    simplestyle.formatStyle({ 'stroke': '#88f', 'fill': 'none', 'stroke-width':'1' }),
-        'biarc1':    simplestyle.formatStyle({ 'stroke': '#8f8', 'fill': 'none', 'stroke-width':'1' }),
-        'line':        simplestyle.formatStyle({ 'stroke': '#f88', 'fill': 'none', 'stroke-width':'1' }),
-        'area':        simplestyle.formatStyle({ 'stroke': '#777', 'fill': 'none', 'stroke-width':'0.1' }),
+        'biarc0':    simplestyle.formatStyle({ 'stroke': '#88f', 'fill': 'none', 'strokeWidth':'1' }),
+        'biarc1':    simplestyle.formatStyle({ 'stroke': '#8f8', 'fill': 'none', 'strokeWidth':'1' }),
+        'line':        simplestyle.formatStyle({ 'stroke': '#f88', 'fill': 'none', 'strokeWidth':'1' }),
+        'area':        simplestyle.formatStyle({ 'stroke': '#777', 'fill': 'none', 'strokeWidth':'0.1' }),
     }
 
 # Inkscape group tag
 SVG_GROUP_TAG = inkex.addNS("g", "svg")
 SVG_PATH_TAG = inkex.addNS('path','svg')
 SVG_IMAGE_TAG = inkex.addNS('image', 'svg')
+SVG_TEXT_TAG = inkex.addNS('text', 'svg')
 SVG_LABEL_TAG = inkex.addNS("label", "inkscape")
 
 
@@ -449,7 +454,8 @@ class Gcode_tools(inkex.Effect):
 
         self.OptionParser.add_option("",   "--min-arc-radius",            action="store", type="float",         dest="min_arc_radius", default="0.0005",            help="All arc having radius less than minimum will be considered as straight line")        
         self.OptionParser.add_option("",   "--mainboard",                    action="store", type="string",         dest="mainboard", default="ramps",    help="Mainboard")
-	    
+        self.OptionParser.add_option("",   "--origin",                    action="store", type="string",         dest="origin", default="topleft",    help="Origin of the Y Axis")
+        
 		
     def parse_curve(self, path):
 #        if self.options.Xscale!=self.options.Yscale:
@@ -935,9 +941,38 @@ class Gcode_tools(inkex.Effect):
                     path['type'] = "raster"
                     path['width'] = imageDataWidth
                     path['height'] = imageDataheight
-                    path['x'] = self.unitScale*(float(node.get("x")) * 1)
+                    
+                    
+                    #Fetch the size of the stroke on the object
+                    strokeWidth = 0
+                    style = node.get('style')
+                    if style:
+                        style = simplestyle.parseStyle(style)
+                        if style.has_key('stroke'):
+                            if style['stroke'] and style['stroke'] != 'none' and style['stroke'][0:3] != 'url':
+                                rgb = simplestyle.parseColor(style['stroke'])
+                                strokeWidth = float(style['stroke-width'])
+                    
+                    path['x'] = self.unitScale*(float(node.get("x"))-(strokeWidth/2) * 1)
+                    
                     #Add the height in px from inkscape from the image, as its top is measured from the origin top left, though in inkscape the origin is bottom left so we need to begin scanning the px at the bottom of the image for our laser bed.
-                    path['y'] =  self.unitScale * ((float(node.get("y"))+(float(imageDataheight)/3))*-1+self.pageHeight)
+                    if(node.tag == SVG_IMAGE_TAG):
+                        #Strokes on images in inkscape aren't shown, so don't account for them.
+                        path['y'] =  self.unitScale * ((float(node.get("y"))+float(node.get("height")))*-1+self.pageHeight)
+                    elif(node.tag == SVG_TEXT_TAG):
+                        #The multiplier is a little fudging, raster may be out on the y coordinate by 0.5mm for very large rasters. Text doesn't seem to convert exactly.
+                        y = ((float(node.get("y"))-(strokeWidth/2))*-1+self.pageHeight)          
+                        y =  y - ( y * 1.0063074911335007855200895586976 - y)      
+                        path['y'] = self.unitScale * y
+                        
+                        x = (float(node.get("x"))-(strokeWidth/2) * 1)
+                        x =  x - ( y * 1.0063074911335007855200895586976 - y)      
+                        path['x'] = self.unitScale * x
+                    else:
+                        y = ((float(node.get("y"))+(float(imageDataheight)/3)-(strokeWidth/2))*-1+self.pageHeight)                   
+                        path['y'] = self.unitScale * y
+                    
+                    
                     path['id'] = node.get("id")
                     path['data'] = pixels
                 
@@ -1233,7 +1268,7 @@ class Gcode_tools(inkex.Effect):
         gcode = self.header;
 
         if (self.options.unit == "mm"):
-            self.unitScale = 0.282222
+            self.unitScale = 0.282222222222
             gcode += "G21 ; All units in mm\n"
         elif (self.options.unit == "in"):
             self.unitScale = 0.011111
