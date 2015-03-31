@@ -915,6 +915,7 @@ class Gcode_tools(inkex.Effect):
                 return pathsGroup
             
             else :
+                #Raster the results.
                 if(node.get("x") > 0):
                     tmp = self.getTmpPath() #OS tmp directory
                     bgcol = "#ffffff" #White
@@ -925,6 +926,7 @@ class Gcode_tools(inkex.Effect):
                     return_code = p.wait()
                     f = p.stdout
                     err = p.stderr
+                    
                     
                     #Fetch the image Data
                     filename = "%stmpinkscapeexport.png" % (tmp)
@@ -943,44 +945,32 @@ class Gcode_tools(inkex.Effect):
                     path['height'] = imageDataheight
                     
                     
-                    #Fetch the size of the stroke on the object
-                    strokeWidth = 0
-                    style = node.get('style')
-                    if style:
-                        style = simplestyle.parseStyle(style)
-                        if style.has_key('stroke'):
-                            if style['stroke'] and style['stroke'] != 'none' and style['stroke'][0:3] != 'url':
-                                rgb = simplestyle.parseColor(style['stroke'])
-                                strokeWidth = float(style['stroke-width'])
+                    #A slow, but reliable way of getting correct coordinates since working with inkscape transpositions and transforms is a major pain in the ass.
+                    command="inkscape -X --query-id=%s %s" % (node.get("id"),curfile) 
+                    p2 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    return_code = p2.wait()
+                    text = p2.communicate()[0]
+                    x_position = float(text)
+                    command="inkscape -Y --query-id=%s %s" % (node.get("id"),curfile) 
+                    p3 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    return_code = p3.wait()
+                    text = p3.communicate()[0]
+                    y_position = float(text)*-1+self.pageHeight
                     
                     
-                    #Transform is needed from the layer
-                    y = 0
-                    x = 0
-                    if (trans):
-                        csp = [float(node.get("x")),float(node.get("y"))]
-                        simpletransform.applyTransformToPoint(trans, csp )
-                        x,y = csp
-                    x = ((x-(strokeWidth/2)) * 1)
+                    #A slow, but reliable way of getting correct coordinates since working with inkscape transpositions and transforms is a major pain in the ass.
+                    #command="inkscape -S %s" % (curfile) 
+                    #p4 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    #return_code = p4.wait()
+                    #text = p4.communicate()[0]
                     
-                    #Add the height in px from inkscape from the image, as its top is measured from the origin top left, though in inkscape the origin is bottom left so we need to begin scanning the px at the bottom of the image for our laser bed.
-                    if(node.tag == SVG_IMAGE_TAG):
-                        #Strokes on images in inkscape aren't shown, so don't account for them.
-                        y =  ((float(node.get("y"))+float(node.get("height"))+float(trans[1][2]))*-1+self.pageHeight)
-                    elif(node.tag == SVG_TEXT_TAG):
-                        #The multiplier is a little fudging, raster may be out on the y coordinate by 0.5mm for very large rasters. Text doesn't seem to convert exactly.
-                        y = ((float(node.get("y"))-(strokeWidth/2)+float(trans[1][2]))*-1+self.pageHeight)          
-                        y =  y - ( y * 1.0063074911335007855200895586976 - y)      
-                        
-                        x = (float(node.get("x"))-(strokeWidth/2)+float(trans[0][2]) * 1)
-                        x =  x - ( x * 1.0063074911335007855200895586976 - x)      
-                    else:
-                        y = ((y+(float(imageDataheight)/3)-(strokeWidth/2)+float(trans[1][2]))*-1+self.pageHeight)                   
-                        
+                    #Text is y positioned from the top left.
+                    #Very small loss of positioning due to conversion of the dpi in the exported image.
+                    y_position -= imageDataheight/3 
                     
                     #Convert from pixels to mm
-                    path['x'] = self.unitScale * float(str("%.5f") %(x))
-                    path['y'] = self.unitScale * float(str("%.5f") %(y))
+                    path['x'] = self.unitScale * float(str("%.3f") %(x_position))
+                    path['y'] = self.unitScale * float(str("%.3f") %(y_position)) 
                     
                     #Do not permit being < 0
                     if(path['y'] < 0):
