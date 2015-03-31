@@ -57,6 +57,9 @@ Fixed up as many situations I could find that threw python error messages and re
 
 Changelog 2015-03-30
 Accounts for strokes on objects. Conditional raster export as some items in inkscape are positioned strangely.
+Modified the way that X-Y coordinates are determined for a node. This allows objects that are on a layer that has been transposed 
+or transformed or if the objects themselves have to be correctly positioned in the gcode exported data. It's a little bit slower but 
+much more reliable. This change only applies to the export of rasters.
 """
 
 ###
@@ -969,8 +972,8 @@ class Gcode_tools(inkex.Effect):
                     y_position -= imageDataheight/3 
                     
                     #Convert from pixels to mm
-                    path['x'] = self.unitScale * float(str("%.3f") %(x_position))
-                    path['y'] = self.unitScale * float(str("%.3f") %(y_position)) 
+                    path['x'] = float(str("%.3f") %(self.unitScale * x_position))
+                    path['y'] = float(str("%.3f") %(self.unitScale * y_position)) 
                     
                     #Do not permit being < 0
                     if(path['y'] < 0):

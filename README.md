@@ -1,7 +1,7 @@
 About This Project
 ------------------
-This project was intended to build and all in one exporting plugin for laser cutters and Inkscape 0.91.
-The project builds gcode that is compatible with a fork of Marlin designed to run on laser cutters found at https://github.com/TurnkeyTyranny/buildlog-lasercutter-marlin .
+This project was intended to build and all in one exporting plugin for laser cutters and Inkscape.
+The plugin builds gcode that is compatible with a fork of Marlin designed to run on laser cutters found at https://github.com/TurnkeyTyranny/buildlog-lasercutter-marlin .
 
 You can contact me via email at : 394ad2f@gmail.com
 
@@ -9,10 +9,10 @@ You can contact me via email at : 394ad2f@gmail.com
 Installation
 ------------
 
-Copy the files turnkeylaser.py and turnkeylaser.inx into your Inkscape extensions folder.
+Copy the files turnkeylaser.py and turnkeylaser.inx into your Inkscape extensions folder -> C:\Program Files\Inkscape\share\extensions
 Fire up inkscape and you will find the plugin under Extensions -> Export -> Turnkey Laser Exporter.
 
-This script relies on a more advanced version of the PIL library thank Inkscape for windows ships with. As such you need to follow these steps for windows installs of Inkscape 0.91 
+This script relies on a more advanced version of the PIL library than Inkscape for windows ships with. As such you need to follow these steps for windows installs of Inkscape 0.91 
 
 * visit https://www.python.org/downloads/ and download python 2.7.9 and install it
 * In the folder : C:\Program Files\Inkscape you will need to rename the folder "Python" to "Python-old" so it uses the new system install instead.
@@ -21,11 +21,19 @@ This script relies on a more advanced version of the PIL library thank Inkscape 
 * From the command line, navigate to where you placed that file. If for example you placed it in the C drive you would type without the quotes
 * "cd c:\"
 * "pip install Pillow-2.7.0-cp27-none-win32.whl"
-* You're good to go!  
+* You also need to install the libxml library, from the command line run this command without the quotes.
+* "easy_install lxml"
+
+Linux Installation
+------------------
+More fleshed out instructions to come at a later date. Essentially just install the PIL library through yum or apt-get and place the 2 script files (.py and .inx) into your extensions directory.
 
 Usage and Setup
 ---------------
-Press CTRL+Shift+d, choose the tab called 'page' and set your project units in the 'custom size' area to be 'px'. You can set the 'Default Units' option to be mm, inch or px. The 'Default Units' are the ones displayed on your rulers.
+I recommend starting with this cutting surface and doing your designs in it. Its setup to match the size of the K40 Laser cutter bed : https://github.com/TurnkeyTyranny/laser-gcode-exporter-inkscape-plugin/blob/master/designs/cutting_surface.svg
+
+
+Alternatively if you're setting up your own new inkscape job first press CTRL+Shift+d, choose the tab called 'page' and set your project units in the 'custom size' area to be 'px'. You can set the 'Default Units' option to be mm, inch or px. The 'Default Units' are the ones displayed on your rulers.
 
 Name your layer in Inkscape like: 10 [feed=600,ppm=40]
 
@@ -83,3 +91,5 @@ Change log
 27-March-2015 - Objects in inkscape which are not paths are now exported to be rastered. They are exported at 270dpi. Images are now also upscaled or downscaled and exported at 270dpi.
 
 28-March-2015 - Fixed many many bugs with default power levels and other defaults, completed the work on exporting objects and images as rasters. Fixed up as many situations I could find that threw python error messages and replaced them with meaningful notices for the user.
+
+30-March-2015 - Modified the way that X-Y coordinates are determined for a node. This allows objects that are on a layer that has been transposed or transformed or if the objects themselves have to be correctly positioned in the gcode exported data. It's a little bit slower but much more reliable. This change only applies to the export of rasters.
