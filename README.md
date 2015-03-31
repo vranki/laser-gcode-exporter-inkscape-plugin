@@ -16,6 +16,7 @@ This script relies on a more advanced version of the PIL library than Inkscape f
 
 * visit https://www.python.org/downloads/ and download python 2.7.9 and install it
 * In the folder : C:\Program Files\Inkscape you will need to rename the folder "Python" to "Python-old" so it uses the new system install instead.
+* Open up the command line by pressing windows key+r and typing in 'cmd' without the quotes then press enter.
 * From the command line, run this command : pip install wheel
 * From http://www.lfd.uci.edu/~gohlke/pythonlibs/#pil , download "Pillow-2.7.0-cp27-none-win32.whl" and place it in an easy to navigate to folder
 * From the command line, navigate to where you placed that file. If for example you placed it in the C drive you would type without the quotes
