@@ -857,7 +857,8 @@ class Gcode_tools(inkex.Effect):
     ###        Curve to Gcode
     ###
     ################################################################################
-
+    
+    
     def effect_curve(self, selected):
         selected = list(selected)
 
@@ -868,7 +869,9 @@ class Gcode_tools(inkex.Effect):
 
         # Recursively compiles a list of paths that are decendant from the given node
         self.skipped = 0
-        def compile_paths(node, trans):
+        
+        
+        def compile_paths(parent, node, trans):
             # Apply the object transform, along with the parent transformation
             mat = node.get('transform', None)
             path = {}
@@ -895,7 +898,7 @@ class Gcode_tools(inkex.Effect):
                 # This node is a group of other nodes
                 pathsGroup = []
                 for child in node.iterchildren():
-                    data = compile_paths(child, trans)
+                    data = compile_paths(parent, child, trans)
                     #inkex.errormsg(str(data))
                     if type(data) is not list:
                         pathsGroup.append(data.copy())
@@ -938,28 +941,36 @@ class Gcode_tools(inkex.Effect):
                     
                     
                     #A slow, but reliable way of getting correct coordinates since working with inkscape transpositions and transforms is a major pain in the ass.
-                    command="inkscape -X --query-id=%s %s" % (node.get("id"),curfile) 
-                    p2 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    return_code = p2.wait()
-                    text = p2.communicate()[0]
-                    x_position = float(text)
-                    command="inkscape -Y --query-id=%s %s" % (node.get("id"),curfile) 
-                    p3 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    return_code = p3.wait()
-                    text = p3.communicate()[0]
-                    y_position = float(text)*-1+self.pageHeight
+                    #command="inkscape -X --query-id=%s %s" % (node.get("id"),curfile) 
+                    #p2 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    #return_code = p2.wait()
+                    #text = p2.communicate()[0]
+                    #x_position = float(text)
+                    #command="inkscape -Y --query-id=%s %s" % (node.get("id"),curfile) 
+                    #p3 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    #return_code = p3.wait()
+                    #text = p3.communicate()[0]
+                    #y_position = float(text)*-1+self.pageHeight
                     
+                    if not hasattr(parent, 'glob_nodePositions'):
+                        #Get the XY position of all elements in the inkscape job.
+                        command="inkscape -S %s" % (curfile) 
+                        p5 = subprocess.Popen(command, stdout=subprocess.PIPE)
+                        dataString = str(p5.communicate()[0]).split('\r\n')
+                        del dataString[-1]
+                        elementList = dict((item.split(",",1)[0],item.split(",",1)[1]) for item in dataString)
+                        parent.glob_nodePositions = elementList
                     
-                    #A slow, but reliable way of getting correct coordinates since working with inkscape transpositions and transforms is a major pain in the ass.
-                    #command="inkscape -S %s" % (curfile) 
-                    #p4 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    #return_code = p4.wait()
-                    #text = p4.communicate()[0]
+                    #Lookup the xy coords for this node.
+                    elementData = parent.glob_nodePositions[node.get("id")].split(',')
+                    x_position = float(elementData[0])
+                    y_position = float(elementData[1])*-1+self.pageHeight
+                    
                     
                     #Text is y positioned from the top left.
                     if (self.options.origin == 'topleft'):
                         #Don't flip the y position. Since we're moving the origin from bottom left to top left.
-                        y_position = float(text)
+                        y_position = float(elementData[1])
                     else:   
                         #Very small loss of positioning due to conversion of the dpi in the exported image.
                         y_position -= imageDataheight/3 
@@ -1086,12 +1097,12 @@ class Gcode_tools(inkex.Effect):
                         
                         
                     try:
-                        newPath = compile_paths(node, trans).copy();
+                        newPath = compile_paths(self, node, trans).copy();
                         pathList.append(newPath)       
                         inkex.errormsg("Built gcode for "+str(node.get("id"))+" - will be cut as %s." % (newPath['type']) )
                     except:
                         messageOnce = True
-                        for objectData in compile_paths(node, trans):
+                        for objectData in compile_paths(self, node, trans):
                             #if (messageOnce):
                             inkex.errormsg("Built gcode for group "+str(node.get("id"))+", item %s - will be cut as %s." % (objectData['id'], objectData['type']) )
                                 #messageOnce = False
@@ -1166,12 +1177,12 @@ class Gcode_tools(inkex.Effect):
             trans = simpletransform.parseTransform("")
             for node in selected:
                 try:
-                    newPath = compile_paths(node, trans).copy();
+                    newPath = compile_paths(self, node, trans).copy();
                     pathList.append(newPath)       
                     inkex.errormsg("Built gcode for "+str(node.get("id"))+" - will be cut as %s." % (newPath['type']) )
                 except:
                     messageOnce = True
-                    for objectData in compile_paths(node, trans):
+                    for objectData in compile_paths(self, node, trans):
                         #if (messageOnce):
                         inkex.errormsg("Built gcode for group "+str(node.get("id"))+", item %s - will be cut as %s." % (objectData['id'], objectData['type']) )
                             #messageOnce = False
@@ -1318,7 +1329,7 @@ class Gcode_tools(inkex.Effect):
             f = open(self.options.directory+'/'+self.options.file, "w")    
             f.write(gcode + self.footer)
             f.close()                            
-        except:
+        except: 
             inkex.errormsg(("Can not write to specified file!"))
             return
 
