@@ -57,9 +57,10 @@ Fixed up as many situations I could find that threw python error messages and re
 
 Changelog 2015-03-30
 Accounts for strokes on objects. Conditional raster export as some items in inkscape are positioned strangely.
-Modified the way that X-Y coordinates are determined for a node. This allows objects that are on a layer that has been transposed 
-or transformed or if the objects themselves have to be correctly positioned in the gcode exported data. It's a little bit slower but 
-much more reliable. This change only applies to the export of rasters.
+
+Changelog 2015-04-1
+Need to get the 'positioning for all' functionality working as exporting many raster objects is painfully slow.
+Updated script to export rasters with top left as the origin or bottom left.
 """
 
 ###
@@ -590,7 +591,11 @@ class Gcode_tools(inkex.Effect):
             m = [1, -1, 1, 1, -1, 1]
             a = [0, 0, 0, 0, 0, 0]
 
-        a[1] += self.pageHeight
+        #Invert the y axis only if the origin should be the bottom left.
+        if (self.options.origin == 'topleft'):
+            m = [1, 1, 1, 1, -1, 1]
+        else:
+            a[1] += self.pageHeight
 
         #I think this is the end of generating the header stuff (adina, june 22 2010)
         args = []
@@ -621,11 +626,11 @@ class Gcode_tools(inkex.Effect):
         #90dpi = 1 / (90 / 25.4)
         gcode += '\n\n;Beginning of Raster Image '+str(curve['id'])+' pixel size: '+str(curve['width'])+'x'+str(curve['height'])+'\n'
         gcode += 'M649 S'+str(laserPower)+' B2 D0 R0.09406\n'
-        gcode += 'G28\n'
          
         #Do not remove these two lines, they're important. Will not raster correctly if feedrate is not set prior.
         #Move fast to point, cut at correct speed.
-        gcode += 'G0 X'+str(curve['x'])+' Y'+str(curve['y'])+' F'+str(self.options.Mfeed)+'\n'
+        if(cutFeed < self.options.Mfeed):
+            gcode += 'G0 X'+str(curve['x'])+' Y'+str(curve['y'])+' F'+str(self.options.Mfeed)+'\n'
         gcode += 'G0 X'+str(curve['x'])+' Y'+str(curve['y'])+' '+cutFeed+'\n'
 
         #def get_chunks(arr, chunk_size = 51):
@@ -655,18 +660,17 @@ class Gcode_tools(inkex.Effect):
             return end
             
         first = True   
-        #Flip the image left to right.
-        #row = curve['data'][::-1] 
+        #Flip the image top to bottom.
+        row = curve['data'][::-1] 
         
         #Turnkey - 29/3/15 - No more flipping.
-        row = curve['data']
+        #row = curve['data']
 
         previousRight = 99999999999
         previousLeft  = 0
         firstRow = True
         
         for index, rowData in enumerate(row):
-            #print "Line "+str(index+1)+" ="
            
             splitRight = 0
             splitLeft = 0
@@ -687,16 +691,13 @@ class Gcode_tools(inkex.Effect):
                 else:
                     splitRight = last_in_list(rowData)
                 
-                #print "Prior Left cut = "+str(splitLeft)+" Right Cut == "+str(splitRight) 
             else:
                 splitLeft = first_in_list(rowData)
                 splitRight = last_in_list(rowData)
             
                 
             #Positive direction
-            if forward:
-                #print "Forward!"
-                
+            if forward:                
                 #Split the right side.
                 ###########################################
 
@@ -705,9 +706,7 @@ class Gcode_tools(inkex.Effect):
                 previousRight = splitRight
                 
             #Negative direction
-            else:
-                #print "Backward!"
-                
+            else:                
                 #Split the left side.
                 ###########################################
                 
@@ -716,14 +715,11 @@ class Gcode_tools(inkex.Effect):
                 previousLeft = splitLeft
                     
                 
-            
             #Exception to the rule : Don't split the left of the first row.
             if(firstRow):
                 splitLeft = (previousLeft)
                 
-            firstRow = False
-            #print "After : Left cut = "+str(splitLeft)+" Right Cut == "+str(splitRight) 
-                
+            firstRow = False                
             row2 = rowData[(splitLeft+1):(splitRight+1)]
             
             if not forward:
@@ -769,7 +765,7 @@ class Gcode_tools(inkex.Effect):
         #Setup our pulse per millimetre option, if applicable
         #B: laser firing mode (0 = continuous, 1 = pulsed, 2 = raster)
         if (altppm):
-            # Use the "alternative" ppm - L60000 is 60ms
+            # Use the "alternative" ppm - L60000 is 60us
             ppmValue = "L60000 P%.2f B1 D0" % altppm
         else:
             #Set the laser firing mode to continuous.
@@ -801,21 +797,11 @@ class Gcode_tools(inkex.Effect):
 
 			#G01 : Move with the laser turned on to a new point
             elif s[1] == 'line':
-                #No longer needed because G01, G02 and G03 will be forced in marlin to automatically fire the laser.
-                #If the laser was turned off, turn it back on.
-                #if lg == "G00": 
-                #   gcode += LASER_ON + "\n"	 
-
                 gcode += "G01 " + "S%.2f " % laserPower + self.make_args(si[0]) + " %s " % cutFeed + "%s" % ppmValue + "\n"
                 lg = 'G01'
 
             #G02 and G03 : Move in an arc with the laser turned on.
             elif s[1] == 'arc':
-                #No longer needed because G01, G02 and G03 will be forced in marlin to automatically fire the laser.
-                #If the laser was turned off, turn it back on.
-                #if lg == "G00":
-                #    gcode += LASER_ON + "\n"
-
                 dx = s[2][0]-s[0][0]
                 dy = s[2][1]-s[0][1]
                 if abs((dx**2 + dy**2)*self.options.Xscale) > self.options.min_arc_radius:
@@ -933,7 +919,10 @@ class Gcode_tools(inkex.Effect):
                     
                     #Fetch the image Data
                     filename = "%stmpinkscapeexport.png" % (tmp)
-                    im = Image.open(filename).convert('L')
+                    if (self.options.origin == 'topleft'):
+                        im = Image.open(filename).transpose(Image.FLIP_TOP_BOTTOM).convert('L')
+                    else:
+                        im = Image.open(filename).convert('L')
                     img = ImageOps.invert(im) 
                     
                     #Get the image size
@@ -968,8 +957,13 @@ class Gcode_tools(inkex.Effect):
                     #text = p4.communicate()[0]
                     
                     #Text is y positioned from the top left.
-                    #Very small loss of positioning due to conversion of the dpi in the exported image.
-                    y_position -= imageDataheight/3 
+                    if (self.options.origin == 'topleft'):
+                        #Don't flip the y position. Since we're moving the origin from bottom left to top left.
+                        y_position = float(text)
+                    else:   
+                        #Very small loss of positioning due to conversion of the dpi in the exported image.
+                        y_position -= imageDataheight/3 
+                    
                     
                     #Convert from pixels to mm
                     path['x'] = float(str("%.3f") %(self.unitScale * x_position))
@@ -1191,20 +1185,6 @@ class Gcode_tools(inkex.Effect):
                     
                     curve = self.parse_curve(objectData)
                 
-                    header_data = ""
-                    #Turnkey : Always output the layer header for information.
-                    if (len(layers) > 0):
-                        header_data += LASER_OFF+"\n"
-                        size = 60
-                        header_data += ";(%s)\n" % ("*"*size)
-                        header_data += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (originalLayerName)
-                        header_data += (";(***** Laser Power: %%-%ds *****)\n" % (size-25)) % (laserPower)
-                        header_data += (";(***** Feed Rate: %%-%ds *****)\n" % (size-23)) % (altfeed)
-                        if(altppm):
-                            header_data += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
-                        header_data += ";(%s)\n" % ("*"*size)
-                        header_data += ";(MSG,Starting layer '%s')\n\n" % originalLayerName
-                    
                     #Determind the power of the laser that this layer should be cut at.
                     #If the layer is not named as an integer value then default to the laser intensity set at the export settings.
                     #Fetch the laser power from the export dialog box.
@@ -1223,6 +1203,20 @@ class Gcode_tools(inkex.Effect):
                     #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
                     if (self.options.mainboard == 'smoothie'):
                         laserPower = float(laserPower) / 100
+                        
+                    header_data = ""
+                    #Turnkey : Always output the layer header for information.
+                    if (len(layers) > 0):
+                        header_data += LASER_OFF+"\n"
+                        size = 60
+                        header_data += ";(%s)\n" % ("*"*size)
+                        header_data += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (originalLayerName)
+                        header_data += (";(***** Laser Power: %%-%ds *****)\n" % (size-25)) % (laserPower)
+                        header_data += (";(***** Feed Rate: %%-%ds *****)\n" % (size-23)) % (altfeed)
+                        if(altppm):
+                            header_data += (";(***** Pulse Rate: %%-%ds *****)\n" % (size-24)) % (altppm)
+                        header_data += ";(%s)\n" % ("*"*size)
+                        header_data += ";(MSG,Starting layer '%s')\n\n" % originalLayerName
                         
                     #Generate the GCode for this layer
                     if (curve['type'] == "vector"):
