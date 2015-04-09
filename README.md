@@ -20,6 +20,7 @@ You have two options to follow, choose the one you prefer.
 * Navigate to C:\Program Files\Inkscape and rename the folder "python" to "python-old"
 * Extract the folder 'Python27' from the archive you downloaded to C:\Program Files\Inkscape and rename it to 'python' (Note the lower case p)
 * You are done, launch inkscape!
+
 2) You can alternatively install python on your system, or use my precompiled version. To install python natively :
 * visit https://www.python.org/downloads/ and download python 2.7.9 and install it to C:\Python27\ . Select the option to add Python to your path during install.
 * In the folder : C:\Program Files\Inkscape you will need to rename the folder "python" to "python-old" so it uses the new system install instead.
