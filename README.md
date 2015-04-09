@@ -1,9 +1,9 @@
 About This Project
 ------------------
-This project was intended to build and all in one exporting plugin for laser cutters and Inkscape.
+This project was intended to build and all in one exporting plugin for laser cutters and Inkscape 0.91. It has not been tested on lower versions of Inkscape but may work..
 The plugin builds gcode that is compatible with a fork of Marlin designed to run on laser cutters found at https://github.com/TurnkeyTyranny/buildlog-lasercutter-marlin .
 
-You can contact me via email at : 394ad2f@gmail.com
+You can contact me via email at : 394ad2f@gmail.com, I check my email daily usually.
 
 
 Installation
@@ -13,17 +13,27 @@ Copy the files turnkeylaser.py and turnkeylaser.inx into your Inkscape extension
 Fire up inkscape and you will find the plugin under Extensions -> Export -> Turnkey Laser Exporter.
 
 This script relies on a more advanced version of the PIL library than Inkscape for windows ships with. As such you need to follow these steps for windows installs of Inkscape 0.91 
+You have two options to follow, choose the one you prefer.
 
-* visit https://www.python.org/downloads/ and download python 2.7.9 and install it
-* In the folder : C:\Program Files\Inkscape you will need to rename the folder "Python" to "Python-old" so it uses the new system install instead.
+1) To use my precompiled version of python 2.7.9 with all the needed libraries follow these steps :
+* Download my updated windows version of python from : https://www.dropbox.com/s/693n7m2fdq6160d/Python27.rar?dl=1
+* Navigate to C:\Program Files\Inkscape and rename the folder "python" to "python-old"
+* Extract the folder 'Python27' from the archive you downloaded to C:\Program Files\Inkscape and rename it to 'python' (Note the lower case p)
+* You are done, launch inkscape!
+2) You can alternatively install python on your system, or use my precompiled version. To install python natively :
+* visit https://www.python.org/downloads/ and download python 2.7.9 and install it to C:\Python27\ . Select the option to add Python to your path during install.
+* In the folder : C:\Program Files\Inkscape you will need to rename the folder "python" to "python-old" so it uses the new system install instead.
 * Open up the command line by pressing windows key+r and typing in 'cmd' without the quotes then press enter.
 * From the command line, run this command : pip install wheel
+* If you get an error message that pip cannot be found on your system, then your windows path is incorrect. Run this command, without the quotes "set PATH=%PATH%;C:\Python27\;C:\Python27\Scripts" and then repeat the above step.
 * From http://www.lfd.uci.edu/~gohlke/pythonlibs/#pil , download "Pillow-2.7.0-cp27-none-win32.whl" and place it in an easy to navigate to folder
 * From the command line, navigate to where you placed that file. If for example you placed it in the C drive you would type without the quotes
 * "cd c:\"
 * "pip install Pillow-2.7.0-cp27-none-win32.whl"
 * You also need to install the libxml library, from the command line run this command without the quotes.
 * "easy_install lxml"
+* You are done, launch inkscape!
+
 
 Linux Installation
 ------------------
@@ -94,3 +104,5 @@ Change log
 28-March-2015 - Fixed many many bugs with default power levels and other defaults, completed the work on exporting objects and images as rasters. Fixed up as many situations I could find that threw python error messages and replaced them with meaningful notices for the user.
 
 30-March-2015 - Modified the way that X-Y coordinates are determined for a node. This allows objects that are on a layer that has been transposed or transformed or if the objects themselves have to be correctly positioned in the gcode exported data. It's a little bit slower but much more reliable. This change only applies to the export of rasters.
+
+09-April-2015 - Updated the readme with better install instructions. Updated the expoter to use a faster method of finding the X-Y coordinates to many rasters however it's only compatible with Inkscape 0.91 now using that command as far as I have been told.
