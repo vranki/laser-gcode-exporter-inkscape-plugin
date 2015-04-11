@@ -106,4 +106,10 @@ Change log
 
 30-March-2015 - Modified the way that X-Y coordinates are determined for a node. This allows objects that are on a layer that has been transposed or transformed or if the objects themselves have to be correctly positioned in the gcode exported data. It's a little bit slower but much more reliable. This change only applies to the export of rasters.
 
+01-April-2015 - Need to get the 'positioning for all' functionality working as exporting many raster objects is painfully slow.
+Updated script to export rasters with top left as the origin or bottom left.
+
 09-April-2015 - Updated the readme with better install instructions. Updated the expoter to use a faster method of finding the X-Y coordinates to many rasters however it's only compatible with Inkscape 0.91 now using that command as far as I have been told.
+
+10-April-2015 - Fixed a bug with exporting paths when the origin was the top left.
+Disabled raster horizintal movement optimisation as it has a bug. Rasters will be a little slower but will come out oriented correctly. Search for line : row2 = rowData 
