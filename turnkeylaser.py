@@ -61,6 +61,10 @@ Accounts for strokes on objects. Conditional raster export as some items in inks
 Changelog 2015-04-1
 Need to get the 'positioning for all' functionality working as exporting many raster objects is painfully slow.
 Updated script to export rasters with top left as the origin or bottom left.
+
+Changelog 2015-04-10
+Fixed a bug with exporting paths when the origin was the top left.
+Disabled raster horizintal movement optimisation as it has a bug. Rasters will be a little slower but will come out oriented correctly. Search for line : row2 = rowData 
 """
 
 ###
@@ -581,7 +585,6 @@ class Gcode_tools(inkex.Effect):
             s = ["X", "Y", "Z", "I", "J", "K"]
             s1 = ["","","","","",""]
 
-            # my replacement that hopefully makes sense (adina, june 22 2010)
             m = [self.options.Xscale, -self.options.Yscale, 1,
                  self.options.Xscale, -self.options.Yscale, 1]
             a = [self.options.Xoffset, self.options.Yoffset, 0, 0, 0, 0]
@@ -591,13 +594,11 @@ class Gcode_tools(inkex.Effect):
             m = [1, -1, 1, 1, -1, 1]
             a = [0, 0, 0, 0, 0, 0]
 
-        #Invert the y axis only if the origin should be the bottom left.
-        if (self.options.origin == 'topleft'):
-            m = [1, 1, 1, 1, -1, 1]
-        else:
+        #There's no aphrodisiac like loneliness
+        #Add the page height if the origin is the bottom left.
+        if (self.options.origin != 'topleft'):
             a[1] += self.pageHeight
-
-        #I think this is the end of generating the header stuff (adina, june 22 2010)
+       
         args = []
         for i in range(6):
             if c[i]!=None:
@@ -662,9 +663,6 @@ class Gcode_tools(inkex.Effect):
         first = True   
         #Flip the image top to bottom.
         row = curve['data'][::-1] 
-        
-        #Turnkey - 29/3/15 - No more flipping.
-        #row = curve['data']
 
         previousRight = 99999999999
         previousLeft  = 0
@@ -721,6 +719,10 @@ class Gcode_tools(inkex.Effect):
                 
             firstRow = False                
             row2 = rowData[(splitLeft+1):(splitRight+1)]
+            
+            #Turnkey 11-04-15 - For the time being, I've disabled the raster optimisation wuith the below line.
+            #There's a bug where it cannot correctly handle white space between vertical lines in raster images and it fucks up the horizontal alignment.
+            row2 = rowData 
             
             if not forward:
                 result_row = row2[::-1]
@@ -892,6 +894,14 @@ class Gcode_tools(inkex.Effect):
                 if (trans):
                     simpletransform.applyTransformToPath(trans, csp)
                     path['data'] = csp
+                    
+                #Apply a transoform in the Y plan to flip the path vertically
+                #If we want our origin to the the top left.
+                if (self.options.origin == 'topleft'):
+                    csp = path['data']
+                    simpletransform.applyTransformToPath(([1.0, 0.0, 0], [0.0, -1.0, 0]), csp)
+                    path['data'] = csp
+                
                 return path
 
             elif node.tag == SVG_GROUP_TAG:
@@ -1329,7 +1339,7 @@ class Gcode_tools(inkex.Effect):
             f = open(self.options.directory+'/'+self.options.file, "w")    
             f.write(gcode + self.footer)
             f.close()                            
-        except: 
+        except:
             inkex.errormsg(("Can not write to specified file!"))
             return
 
