@@ -65,6 +65,11 @@ Updated script to export rasters with top left as the origin or bottom left.
 Changelog 2015-04-10
 Fixed a bug with exporting paths when the origin was the top left.
 Disabled raster horizintal movement optimisation as it has a bug. Rasters will be a little slower but will come out oriented correctly. Search for line : row2 = rowData 
+
+Changelog 2015-04-11
+Added back in raster optimising, it's not perfect but it's mostly there. Only a little slow parsing white vertical space now.
+Found that raster optimisation code seems to be changing the pixel data at the end of the line somewhere. I'm not sure how since it's meant to just be cutting part of the data line out not changing it. will need to investigate further.
+Added option to the menu for users to disable raster optimisations.
 """
 
 ###
@@ -463,6 +468,7 @@ class Gcode_tools(inkex.Effect):
         self.OptionParser.add_option("",   "--min-arc-radius",            action="store", type="float",         dest="min_arc_radius", default="0.0005",            help="All arc having radius less than minimum will be considered as straight line")        
         self.OptionParser.add_option("",   "--mainboard",                    action="store", type="string",         dest="mainboard", default="ramps",    help="Mainboard")
         self.OptionParser.add_option("",   "--origin",                    action="store", type="string",         dest="origin", default="topleft",    help="Origin of the Y Axis")
+        self.OptionParser.add_option("",   "--optimiseraster",                 action="store", type="inkbool",    dest="optimiseraster", default=True, help="Optimise raster horizontal scanning speed")
         
 		
     def parse_curve(self, path):
@@ -609,7 +615,6 @@ class Gcode_tools(inkex.Effect):
         
     def generate_raster_gcode(self, curve, laserPower, altfeed=None):
         gcode = ''
-        forward = True
         
         #Setup our feed rate, either from the layer name or from the default value.
         if (altfeed):
@@ -639,17 +644,8 @@ class Gcode_tools(inkex.Effect):
             chunks  = [ arr[start:start+chunk_size] for start in range(0, len(arr), chunk_size)]
             return chunks 
 
-        #return the last pixel that holds data.
-        def last_in_list(arr):
-            end = 0
-            for i in range(len(arr)):
-                if (arr[i] > 0):
-                    end = i
-                    
-            return end
-
-
-        #return the last pixel that holds data.
+            
+        #return the first pixel that holds data.
         def first_in_list(arr):
             end = 0
             for i in range(len(arr)):
@@ -660,37 +656,69 @@ class Gcode_tools(inkex.Effect):
                     
             return end
             
-        first = True   
+        #does this line have any data?
+        def is_blank_line(arr):
+            for i in range(len(arr)):
+                if (arr[i] > 0):
+                    return False
+                    
+            return True
+            
+            
+        #return the last pixel that holds data.
+        def last_in_list(arr):
+            end = len(arr)
+            for i in range(len(arr)):
+                if (arr[i] > 0):
+                    end = i
+                    
+            return end
+
+
+          
         #Flip the image top to bottom.
         row = curve['data'][::-1] 
 
         previousRight = 99999999999
         previousLeft  = 0
         firstRow = True
+        first = True 
+        forward = True
         
         for index, rowData in enumerate(row):
-           
+            
             splitRight = 0
             splitLeft = 0
             
-            if(index+1 < len(row)):
+            
+            #Turnkey - 11-04-15
+            #The below allows iteration over blank lines, while still being 'mostly' optimised for path. could still do with a little improvement for optimising horizontal movement and extrenuous for loops.
+            sub_index = index+1
+            if(sub_index < len(row)):
+                while is_blank_line(row[sub_index]):
+                    if(sub_index < len(row)):
+                        sub_index += 1
+                    else:
+                        break
+            #are we processing data before the last line?    
+            if(sub_index < len(row)):
                 # Determine where to split the lines.
                 ##################################################
                 
                 #If the left most pixel of the next row is earlier than the current row, then extend.
-                if(first_in_list(row[index +1]) > first_in_list(rowData)):
+                if(first_in_list(row[sub_index]) > first_in_list(rowData)):
                     splitLeft = first_in_list(rowData)
                 else:
-                    splitLeft = first_in_list(row[index +1])
+                    splitLeft = first_in_list(row[sub_index])
 
                 #If the end pixel of the next line is later than the current line, extend.
-                if(last_in_list(row[index +1]) > last_in_list(rowData)):
-                    splitRight = last_in_list(row[index +1])
+                if(last_in_list(row[sub_index]) > last_in_list(rowData)):
+                    splitRight = last_in_list(row[sub_index])
                 else:
                     splitRight = last_in_list(rowData)
                 
             else:
-                splitLeft = first_in_list(rowData)
+                splitLeft  = first_in_list(rowData)
                 splitRight = last_in_list(rowData)
             
                 
@@ -703,6 +731,7 @@ class Gcode_tools(inkex.Effect):
                 splitLeft = previousLeft
                 previousRight = splitRight
                 
+                
             #Negative direction
             else:                
                 #Split the left side.
@@ -711,25 +740,30 @@ class Gcode_tools(inkex.Effect):
                 #Don't split more than the end of the last row as we print in reverse for alternate lines
                 splitRight = previousRight
                 previousLeft = splitLeft
-                    
+                
                 
             #Exception to the rule : Don't split the left of the first row.
             if(firstRow):
                 splitLeft = (previousLeft)
                 
-            firstRow = False                
+            firstRow = False
             row2 = rowData[(splitLeft+1):(splitRight+1)]
-            
-            #Turnkey 11-04-15 - For the time being, I've disabled the raster optimisation wuith the below line.
+                        
+            #Turnkey 11-04-15 - For the time being, I've disabled the raster optimisation with the below line.
             #There's a bug where it cannot correctly handle white space between vertical lines in raster images and it fucks up the horizontal alignment.
-            row2 = rowData 
+            #-Update, users can disable optimisations through the options now.
+            #The optimisation has a bug which can produce hot spots at the edge of rasters.
+            if( not self.options.optimiseraster ):
+                row2 = rowData 
             
+            #Heading Left to right, invert the data.
             if not forward:
                 result_row = row2[::-1]
+            #Heading Right to left.
             else:
                 result_row = row2
-                
             
+            first = True
             for chunk in get_chunks(result_row,51):
                 if first:
                     if forward:
@@ -744,7 +778,6 @@ class Gcode_tools(inkex.Effect):
                 gcode += ("L"+str(len(b64))+" ")
                 gcode += ("D"+b64+ "\n")
             forward = not forward
-            first = not first
                 
         gcode += ("M5 \n");
         gcode += ';End of Raster Image '+str(curve['id'])+'\n\n'
