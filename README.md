@@ -113,3 +113,7 @@ Updated script to export rasters with top left as the origin or bottom left.
 
 10-April-2015 - Fixed a bug with exporting paths when the origin was the top left.
 Disabled raster horizintal movement optimisation as it has a bug. Rasters will be a little slower but will come out oriented correctly. Search for line : row2 = rowData 
+
+11-April-2015 - Added back in raster optimising, it's not perfect but it's mostly there. Only a little slow parsing white vertical space now.
+Found that raster optimisation code seems to be changing the pixel data at the end of the line somewhere. I'm not sure how since it's meant to just be cutting part of the data line out not changing it. will need to investigate further.
+Added option to the menu for users to disable raster optimisations.
