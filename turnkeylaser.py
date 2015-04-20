@@ -70,7 +70,10 @@ Changelog 2015-04-11
 Added back in raster optimising, it's not perfect but it's mostly there. Only a little slow parsing white vertical space now.
 Found that raster optimisation code seems to be changing the pixel data at the end of the line somewhere. I'm not sure how since it's meant to just be cutting part of the data line out not changing it. will need to investigate further.
 Added option to the menu for users to disable raster optimisations.
-"""
+
+Changelog 2015-04-20
+Trying to fix a bug with exporting rasters on Mac
+""" 
 
 ###
 ###        Gcode tools
@@ -90,7 +93,7 @@ import time
 #Image processing for rastering
 import base64
 from PIL import Image
-import ImageOps
+from PIL import ImageOps
 import subprocess
 import simplestyle
 
@@ -998,7 +1001,7 @@ class Gcode_tools(inkex.Effect):
                     if not hasattr(parent, 'glob_nodePositions'):
                         #Get the XY position of all elements in the inkscape job.
                         command="inkscape -S %s" % (curfile) 
-                        p5 = subprocess.Popen(command, stdout=subprocess.PIPE)
+                        p5 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                         dataString = str(p5.communicate()[0]).split('\r\n')
                         del dataString[-1]
                         elementList = dict((item.split(",",1)[0],item.split(",",1)[1]) for item in dataString)
