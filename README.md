@@ -28,7 +28,7 @@ You have two options to follow, choose the one you prefer.
 * Open up the command line by pressing windows key+r and typing in 'cmd' without the quotes then press enter.
 * From the command line, run this command : pip install wheel
 * If you get an error message that pip cannot be found on your system, then your windows path is incorrect. Run this command, without the quotes "set PATH=%PATH%;C:\Python27\;C:\Python27\Scripts" and then repeat the above step.
-* From http://www.lfd.uci.edu/~gohlke/pythonlibs/#pil , if you are running windows 32 bit download "Pillow-2.7.0-cp27-none-win32.whl", if you are running windows 64 bit download "Pillow-2.7.0-cp27-none-win_amd64.whl" and place it in an easy to navigate to folder
+* From http://www.lfd.uci.edu/~gohlke/pythonlibs/#pil : Replace x.x.x with the latest version. If you are running windows 32 bit download "Pillow-x.x.x-cp27-none-win32.whl", if you are running windows 64 bit download "Pillow-x.x.x-cp27-none-win_amd64.whl" and place it in an easy to navigate to folder. Alternatively get them from the PIL folder in this repo.
 * Start the command line by pressing windows key+r and typing in cmd and pressing enter.
 * From the command line, navigate to where you placed that file. If for example you placed it in the C drive you would type without the quotes
 * "cd c:\"
