@@ -70,10 +70,7 @@ Changelog 2015-04-11
 Added back in raster optimising, it's not perfect but it's mostly there. Only a little slow parsing white vertical space now.
 Found that raster optimisation code seems to be changing the pixel data at the end of the line somewhere. I'm not sure how since it's meant to just be cutting part of the data line out not changing it. will need to investigate further.
 Added option to the menu for users to disable raster optimisations.
-
-Changelog 2015-04-20
-Trying to fix a bug with exporting rasters on Mac
-""" 
+"""
 
 ###
 ###        Gcode tools
@@ -698,7 +695,7 @@ class Gcode_tools(inkex.Effect):
             #The below allows iteration over blank lines, while still being 'mostly' optimised for path. could still do with a little improvement for optimising horizontal movement and extrenuous for loops.
             sub_index = index+1
             if(sub_index < len(row)):
-                while is_blank_line(row[sub_index]):
+                while is_blank_line(row[sub_index-1]):
                     if(sub_index < len(row)):
                         sub_index += 1
                     else:
@@ -1002,7 +999,8 @@ class Gcode_tools(inkex.Effect):
                         #Get the XY position of all elements in the inkscape job.
                         command="inkscape -S %s" % (curfile) 
                         p5 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        dataString = str(p5.communicate()[0]).split('\r\n')
+                        dataString = str(p5.communicate()[0]).replace("\r", "").split('\n')
+                        #Remove the final array element since the last item has a \r\n which creates a blank array element otherwise.
                         del dataString[-1]
                         elementList = dict((item.split(",",1)[0],item.split(",",1)[1]) for item in dataString)
                         parent.glob_nodePositions = elementList
