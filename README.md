@@ -15,11 +15,12 @@ Fire up inkscape and you will find the plugin under Extensions -> Export -> Turn
 This script relies on a more advanced version of the PIL library than Inkscape for windows ships with. As such you need to follow these steps for windows installs of Inkscape 0.91 
 You have two options to follow, choose the one you prefer.
 
-1) To use my precompiled version of python 2.7.9 with all the needed libraries follow these steps :
+1) If you are using 32 bit inkscape you can use my precompiled version of 32 bit python 2.7.9 with all the needed libraries follow these steps :
 * Download my updated windows version of python from : https://www.dropbox.com/s/693n7m2fdq6160d/Python27.rar?dl=1
 * Navigate to C:\Program Files\Inkscape and rename the folder "python" to "python-old"
 * Extract the folder 'Python27' from the archive you downloaded to C:\Program Files\Inkscape and rename it to 'python' (Note the lower case p)
-* You are done, launch inkscape!
+* You are done, launch inkscape and run the plugin!
+* If you run the export plugin and you don't get a popup diagnostic log telling you which items were exported successfully then unfortunately you need to install Python manually as described below in option #2
 
 2) You can alternatively install python on your system, or use my precompiled version. To install python natively :
 * visit https://www.python.org/downloads/ and download python 2.7.9 and install it to C:\Python27\ . Select the option to add Python to your path during install.
@@ -27,13 +28,14 @@ You have two options to follow, choose the one you prefer.
 * Open up the command line by pressing windows key+r and typing in 'cmd' without the quotes then press enter.
 * From the command line, run this command : pip install wheel
 * If you get an error message that pip cannot be found on your system, then your windows path is incorrect. Run this command, without the quotes "set PATH=%PATH%;C:\Python27\;C:\Python27\Scripts" and then repeat the above step.
-* From http://www.lfd.uci.edu/~gohlke/pythonlibs/#pil , download "Pillow-2.7.0-cp27-none-win32.whl" and place it in an easy to navigate to folder
+* From http://www.lfd.uci.edu/~gohlke/pythonlibs/#pil , if you are running windows 32 bit download "Pillow-2.7.0-cp27-none-win32.whl", if you are running windows 64 bit download "Pillow-2.7.0-cp27-none-win_amd64.whl" and place it in an easy to navigate to folder
+* Start the command line by pressing windows key+r and typing in cmd and pressing enter.
 * From the command line, navigate to where you placed that file. If for example you placed it in the C drive you would type without the quotes
 * "cd c:\"
-* "pip install Pillow-2.7.0-cp27-none-win32.whl"
+* "pip install Pillow-2.7.0-cp27-none-win32.whl" or "pip install Pillow-2.7.0-cp27-none-win_amd64.whl" depending on which you downloaded
 * You also need to install the libxml library, from the command line run this command without the quotes.
 * "easy_install lxml"
-* You are done, launch inkscape!
+* You are done, launch inkscape and run the plugin!
 
 
 Linux Installation
@@ -55,6 +57,28 @@ If you do not name your layer in this way then the script will use the default s
 
 
 When you're ready to export your objects, images or paths just select the items you would like to be exported by dragging over them or holding shift to select multiple and then run the plugin under under Extensions Menu -> Export -> Turnkey Laser Exporter. 
+
+
+Sending the file to your laser
+------------------------------
+You can send the file to your laser by serial (USB cable) or SD memory card. 
+
+1) Via USB cable
+* Download repetier host and install it on your PC - http://www.repetier.com/download/
+* Open the software and set the port of your laser in the options. It will typically be COM7 - otherwise it's the same as what your programmed your Arduino on originally. The port speed should be set to 115200
+* Press the connect button, it will turn green.
+* Open your gcode file you created earlier and press the print button. Your laser will now burn your instruction set.
+* I have found the repetier host sometimes repeatedly fails unexpectedly when burning vector lines after a raster for no apparent reason. It will suddenly stop sending further instructions to the laser and the arduino needs to be power cycled.
+
+
+Alternatively you can use pronterface http://www.pronterface.com/index.html#download however pronterface has a bug which prevents it from correctly reading the raster data.
+At the moment if you want to use pronterface to burn rasters you must replace all instances of + and / in your raster data with the number 9. The GCode is just a text file, you can do a find and replace on these characters in your text editor.
+I have found that pronterface is 100% reliable for burning the vectors that repetier host has issue with.
+
+2) Via SD Memory card
+* Place the file onto your SD card
+* Insert it into your ramps SD card reader.
+* Select the file from the ramps LCD menu and print.
 
 Keyboard Shortcut
 -----------------
