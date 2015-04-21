@@ -4,7 +4,7 @@ This project was intended to build and all in one exporting plugin for laser cut
 The plugin builds gcode that is compatible with a fork of Marlin designed to run on laser cutters found at https://github.com/TurnkeyTyranny/buildlog-lasercutter-marlin .
 
 You can contact me via email at : 394ad2f@gmail.com, I check my email daily usually.
-
+Find this software useful? Donations are appreciated : Paypal to 394ad2f@gmail.com
 
 Installation
 ------------
