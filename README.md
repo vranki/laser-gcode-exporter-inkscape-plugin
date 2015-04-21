@@ -10,7 +10,6 @@ Donations
 Find this software useful? Donations are gratefully appreciated. 
 
 Paypal to 394ad2f@gmail.com
-
 Bitcoins to 16TFmnFyvDA8Q6TTakvvhargy8c89Rb3cj
 
 Installation
