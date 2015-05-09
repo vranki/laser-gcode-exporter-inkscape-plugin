@@ -70,6 +70,16 @@ Changelog 2015-04-11
 Added back in raster optimising, it's not perfect but it's mostly there. Only a little slow parsing white vertical space now.
 Found that raster optimisation code seems to be changing the pixel data at the end of the line somewhere. I'm not sure how since it's meant to just be cutting part of the data line out not changing it. will need to investigate further.
 Added option to the menu for users to disable raster optimisations.
+
+Changelog 2015-05-09
+Spent a day stuffing around with the exporter and marlin firmware to figure out why pronterface was throwing checksum errors when
+sending lots of G02 and G03 arc vector cuts. It turns out that with too much precision in the cuts marlin's buffer fills up and it's
+unable to receive any more serial data. I resolved this by reducing the float point precision down to 3 decimal places and shifting
+power and pulse settings to the G00 move command that comes before a set of G01, G02 and G03 commands to limit data that's needed to
+be sent over the wire. 
+
+I also fixed up the part of the exporter to allow the offset and scaling functions to work. Though I found that looking at the scaling
+code it will only scale from the original 0,0 coordinate, it doesn't scale based on a centre point.
 """
 
 ###
@@ -456,7 +466,7 @@ class Gcode_tools(inkex.Effect):
         self.OptionParser.add_option("",   "--unit",                    action="store", type="string",         dest="unit", default="G21 (All units in mm)\n",    help="Units")
         self.OptionParser.add_option("",   "--function",                action="store", type="string",         dest="function", default="Curve",                help="What to do: Curve|Area|Area inkscape")
         self.OptionParser.add_option("",   "--tab",                        action="store", type="string",         dest="tab", default="",                            help="Means nothing right now. Notebooks Tab.")
-        self.OptionParser.add_option("",   "--generate_not_parametric_code",action="store", type="inkbool",    dest="generate_not_parametric_code", default=False,help="Generated code will be not parametric.")        
+        #self.OptionParser.add_option("",   "--generate_not_parametric_code",action="store", type="inkbool",    dest="generate_not_parametric_code", default=False,help="Generated code will be not parametric.")        
         self.OptionParser.add_option("",   "--double_sided_cutting",action="store", type="inkbool",    dest="double_sided_cutting", default=False,help="Generate code for double-sided cutting.")
         self.OptionParser.add_option("",   "--draw-curves",                action="store", type="inkbool",    dest="drawCurves", default=False,help="Draws curves to show what geometry was processed")        
         self.OptionParser.add_option("",   "--logging",                 action="store", type="inkbool",    dest="logging", default=False, help="Enable output logging from the plugin")
@@ -587,18 +597,19 @@ class Gcode_tools(inkex.Effect):
         if c[5] == 0:
             c[5] = None
         # next few lines generate the stuff at the front of the file - scaling, offsets, etc (adina)
-        if self.options.generate_not_parametric_code: 
-            s = ["X", "Y", "Z", "I", "J", "K"]
-            s1 = ["","","","","",""]
+        #if self.options.generate_not_parametric_code: 
+        s = ["X", "Y", "Z", "I", "J", "K"]
+        s1 = ["","","","","",""]
 
-            m = [self.options.Xscale, -self.options.Yscale, 1,
-                 self.options.Xscale, -self.options.Yscale, 1]
-            a = [self.options.Xoffset, self.options.Yoffset, 0, 0, 0, 0]
-        else:
-            s = ["X", "Y", "Z", "I", "J", "K"]
-            s1 = ["", "", "", "",  "", ""]
-            m = [1, -1, 1, 1, -1, 1]
-            a = [0, 0, 0, 0, 0, 0]
+        m = [self.options.Xscale, -self.options.Yscale, 1,
+             self.options.Xscale, -self.options.Yscale, 1]
+        a = [self.options.Xoffset, self.options.Yoffset, 0, 0, 0, 0]
+        
+       # else:
+        #    s = ["X", "Y", "Z", "I", "J", "K"]
+        #    s1 = ["", "", "", "",  "", ""]
+         #   m = [1, -1, 1, 1, -1, 1]
+        #    a = [0, 0, 0, 0, 0, 0]
 
         #There's no aphrodisiac like loneliness
         #Add the page height if the origin is the bottom left.
@@ -609,7 +620,7 @@ class Gcode_tools(inkex.Effect):
         for i in range(6):
             if c[i]!=None:
                 value = self.unitScale*(c[i]*m[i]+a[i])
-                args.append(s[i] + ("%f" % value) + s1[i])
+                args.append(s[i] + ("%.3f" % value) + s1[i])
         return " ".join(args)
         
         
@@ -621,15 +632,18 @@ class Gcode_tools(inkex.Effect):
             # Use the "alternative" feed rate specified
             cutFeed = "F%i" % altfeed
         else:
-            if self.options.generate_not_parametric_code: 
-                cutFeed = "F%i" % self.options.feed
-            else:
-                cutFeed = "F%i" % self.options.feed
+            #if self.options.generate_not_parametric_code: 
+            #    cutFeed = "F%i" % self.options.feed
+            #else:
+            cutFeed = "F%i" % self.options.feed
         
         #This extension assumes that your copy of Inkscape is running at 90dpi (it is by default)
         #R = mm per pixel
         #R = 1 / dots per mm
         #90dpi = 1 / (90 / 25.4)
+        #Rasters are exported internally at 270dpi. 
+        #So R = 1 / (270 / 25.4) 
+        #     = 0.09406
         gcode += '\n\n;Beginning of Raster Image '+str(curve['id'])+' pixel size: '+str(curve['width'])+'x'+str(curve['height'])+'\n'
         gcode += 'M649 S'+str(laserPower)+' B2 D0 R0.09406\n'
          
@@ -792,10 +806,7 @@ class Gcode_tools(inkex.Effect):
             # Use the "alternative" feed rate specified
             cutFeed = "F%i" % altfeed
         else:
-            if self.options.generate_not_parametric_code: 
-                cutFeed = "F%i" % self.options.feed
-            else:
-                cutFeed = "F%i" % self.options.feed
+            cutFeed = "F%i" % self.options.feed
                 
         #Setup our pulse per millimetre option, if applicable
         #B: laser firing mode (0 = continuous, 1 = pulsed, 2 = raster)
@@ -821,10 +832,10 @@ class Gcode_tools(inkex.Effect):
 			#G00 : Move with the laser off to a new point
             if s[1] == 'move':
                 #Turn off the laser if it was on previously.
-                if lg != "G00":
-                    gcode += LASER_OFF + "\n"
+                #if lg != "G00":
+                #    gcode += LASER_OFF + "\n"
 				
-                gcode += "G00" + " " + self.make_args(si[0]) + " F%i" % self.options.Mfeed + "\n"
+                gcode += "G00" + " S%.2f " % laserPower  + self.make_args(si[0]) + " F%i " % self.options.Mfeed + "%s" % ppmValue + "\n"
                 lg = 'G00'
 
             elif s[1] == 'end':
@@ -832,7 +843,7 @@ class Gcode_tools(inkex.Effect):
 
 			#G01 : Move with the laser turned on to a new point
             elif s[1] == 'line':
-                gcode += "G01 " + "S%.2f " % laserPower + self.make_args(si[0]) + " %s " % cutFeed + "%s" % ppmValue + "\n"
+                gcode += "G01 " + "S%.2f " % laserPower + self.make_args(si[0]) + " %s " % cutFeed + "\n"
                 lg = 'G01'
 
             #G02 and G03 : Move in an arc with the laser turned on.
@@ -847,7 +858,7 @@ class Gcode_tools(inkex.Effect):
                             gcode += cwArc
                         else:
                             gcode += ccwArc
-                        gcode += " " + "S%.2f " % laserPower + self.make_args(si[0] + [None, dx, dy, None]) + " %s " % cutFeed + "%s" % ppmValue + "\n"
+                        gcode += " " + self.make_args(si[0] + [None, dx, dy, None]) + " %s " % cutFeed + "\n"
 
                     else:
                         r = (r1.mag()+r2.mag())/2
@@ -855,12 +866,12 @@ class Gcode_tools(inkex.Effect):
                             gcode += cwArc
                         else:
                             gcode += ccwArc
-                        gcode += " " + "S%.2f " % laserPower + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + " %s " % cutFeed + "%s" % ppmValue + "\n"
+                        gcode += " " + "S%.2f " % laserPower + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + " %s " % cutFeed + "\n"
 
                     lg = cwArc
                 #The arc is less than the minimum arc radius, draw it as a straight line.
                 else:
-                    gcode += "G01 " + "S%.2f " % laserPower + self.make_args(si[0]) + " %s " % cutFeed + "%s" % ppmValue + "\n"
+                    gcode += "G01 " + "S%.2f " % laserPower + self.make_args(si[0]) + " %s " % cutFeed + "\n"
                     lg = 'G01'
 
     
@@ -928,13 +939,13 @@ class Gcode_tools(inkex.Effect):
                     simpletransform.applyTransformToPath(trans, csp)
                     path['data'] = csp
                     
-                #Apply a transoform in the Y plan to flip the path vertically
+                #Apply a transform in the Y plan to flip the path vertically
                 #If we want our origin to the the top left.
                 if (self.options.origin == 'topleft'):
                     csp = path['data']
                     simpletransform.applyTransformToPath(([1.0, 0.0, 0], [0.0, -1.0, 0]), csp)
                     path['data'] = csp
-                
+                    
                 return path
 
             elif node.tag == SVG_GROUP_TAG:
@@ -1021,7 +1032,7 @@ class Gcode_tools(inkex.Effect):
                     
                     
                     #Convert from pixels to mm
-                    path['x'] = float(str("%.3f") %(self.unitScale * x_position))
+                    path['x'] = float(str("%.3f") %(self.unitScale * x_position)) 
                     path['y'] = float(str("%.3f") %(self.unitScale * y_position)) 
                     
                     #Do not permit being < 0
@@ -1098,7 +1109,7 @@ class Gcode_tools(inkex.Effect):
                     break
 
         layers = list(reversed(get_layers(self.document)))
-
+        
         # Loop over the layers and objects
         gcode = ""
         gcode_raster = ""
@@ -1215,7 +1226,12 @@ class Gcode_tools(inkex.Effect):
         #Turnkey - Need to figure out why inkscape sometimes gets to this point and hasn't found the objects above.            
         # If there are any objects left over, it's because they don't belong
         # to any inkscape layer (bug in inkscape?). Output those now.
+        #Turnkey - This is caused by objects being inside a group.
         if (selected):
+             
+            inkex.errormsg("Warning: Your selected object is part of a group. If your group has a transformations/skew/rotation applied to it these will not be exported correctly. Please ungroup your objects first then re-export. Select them and press Shift+Ctrl+G to ungroup.\n")
+             
+             
             pathList = []
             # Use the identity transform (eg no transform) for the root objects
             trans = simpletransform.parseTransform("")
@@ -1341,8 +1357,8 @@ class Gcode_tools(inkex.Effect):
             inkex.errormsg(("You must choose mm or in"))
             return
 
-        if not self.options.generate_not_parametric_code:
-            gcode += """
+        #Put the header data in the gcode file
+        gcode += """
 ; Raster data will always precede vector data           
 ; Default Cut Feedrate %i mm per minute
 ; Default Move Feedrate %i mm per minute
@@ -1365,7 +1381,7 @@ class Gcode_tools(inkex.Effect):
 
             self.options.Yscale *= -1
             self.flipArcs = not(self.flipArcs)
-            self.options.generate_not_parametric_code = True
+            #self.options.generate_not_parametric_code = True
             self.pageHeight = 0
             gcode += self.effect_curve(selected)
 
@@ -1383,4 +1399,3 @@ class Gcode_tools(inkex.Effect):
 e = Gcode_tools()
 e.affect()
 inkex.errormsg("Finished processing.")
-
