@@ -78,12 +78,9 @@ You can send the file to your laser by serial (USB cable) or SD memory card.
 * Open the software and set the port of your laser in the options. It will typically be COM7 - otherwise it's the same as what your programmed your Arduino on originally. The port speed should be set to 115200
 * Press the connect button, it will turn green.
 * Open your gcode file you created earlier and press the print button. Your laser will now burn your instruction set.
-* I have found the repetier host sometimes repeatedly fails unexpectedly when burning vector lines after a raster for no apparent reason. It will suddenly stop sending further instructions to the laser and the arduino needs to be power cycled.
 
 
-Alternatively you can use pronterface http://www.pronterface.com/index.html#download however pronterface has a bug which prevents it from correctly reading the raster data.
-At the moment if you want to use pronterface to burn rasters you must replace all instances of + and / in your raster data with the number 9. The GCode is just a text file, you can do a find and replace on these characters in your text editor.
-I have found that pronterface is 100% reliable for burning the vectors that repetier host has issue with.
+Alternatively you can use pronterface http://www.pronterface.com/index.html#download . You must ensure you check the box for Pronterface under 'Advanced' tab in the exporter plugin. It is checked by default.
 
 2) Via SD Memory card
 * Place the file onto your SD card
