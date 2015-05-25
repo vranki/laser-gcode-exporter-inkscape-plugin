@@ -41,7 +41,7 @@ You have two options to follow, choose the one you prefer.
 
 
 2) If you are using 32 bit inkscape you can potentially use my precompiled version of 32 bit python 2.7.9 with all the needed libraries follow these steps, however this works for some people and not for others. Unsure why :
-* Download my updated windows version of python from : https://www.dropbox.com/s/693n7m2fdq6160d/Python27.rar?dl=1
+* Download my updated windows version of python from : https://github.com/TurnkeyTyranny/laser-gcode-exporter-inkscape-plugin/blob/master/files/Python27.rar
 * Navigate to C:\Program Files\Inkscape and rename the folder "python" to "python-old"
 * Extract the folder 'Python27' from the archive you downloaded to C:\Program Files\Inkscape and rename it to 'python' (Note the lower case p)
 * You are done, launch inkscape and run the plugin!
