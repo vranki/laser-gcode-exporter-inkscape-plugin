@@ -42,6 +42,9 @@ For the latest revision please visit https://github.com/TurnkeyTyranny/laser-gco
                 <item value="ramps">Ramps 1.4</item>
                 <item value="smoothie">Smoothie</item>
             </param>
+            <param name="pronterface" type="boolean" _gui-text="Are you using Pronterface?">true</param>
+            <_param name="help" type="description">Will adjust the raster data to be compatible with Pronterface. Very minor loss of laser power on 100% black areas.</_param>
+            
             <param name="biarc-tolerance" type='float' _gui-text='Biarc interpolation tolerance'>0.5</param>
             <_param name="help" type="description">Biarc interpolation tolerance is the maximum allowed distance between a path and it's approximation. If this value is exceeded, the path will be split into two segments.</_param>
             <param name="biarc-max-split-depth" type="int" _gui-text="Maximum splitting depth">4</param>

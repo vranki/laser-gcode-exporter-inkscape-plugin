@@ -78,6 +78,11 @@ unable to receive any more serial data. I resolved this by reducing the float po
 power and pulse settings to the G00 move command that comes before a set of G01, G02 and G03 commands to limit data that's needed to
 be sent over the wire. 
 
+Changelog 2015-05-255
+Updated GCodes to optimise when it sends PPM and laser power info.
+Added a Pronterface option which is enabled by default to allow rasters to be printed with pronterface.
+Added M80 command for Tim from LMN
+
 I also fixed up the part of the exporter to allow the offset and scaling functions to work. Though I found that looking at the scaling
 code it will only scale from the original 0,0 coordinate, it doesn't scale based on a centre point.
 """
@@ -477,6 +482,7 @@ class Gcode_tools(inkex.Effect):
 
         self.OptionParser.add_option("",   "--min-arc-radius",            action="store", type="float",         dest="min_arc_radius", default="0.0005",            help="All arc having radius less than minimum will be considered as straight line")        
         self.OptionParser.add_option("",   "--mainboard",                    action="store", type="string",         dest="mainboard", default="ramps",    help="Mainboard")
+        self.OptionParser.add_option("",   "--pronterface",                    action="store", type="inkbool",         dest="pronterface", default=True,    help="Are you using Pronterface? If so we need to change some characters in the GCode raster data to keep pronterface happy. Slight loss of intensity on pure blacks but nothing major.")
         self.OptionParser.add_option("",   "--origin",                    action="store", type="string",         dest="origin", default="topleft",    help="Origin of the Y Axis")
         self.OptionParser.add_option("",   "--optimiseraster",                 action="store", type="inkbool",    dest="optimiseraster", default=True, help="Optimise raster horizontal scanning speed")
         
@@ -789,6 +795,11 @@ class Gcode_tools(inkex.Effect):
                     gcode +=  ("G7 ")
                     
                 b64 = base64.b64encode("".join(chr(y) for y in chunk))
+                
+                #If we're using pronterface, we need to change raster data / and + in the base64 alphabet to letter 9. This loses a little intensity in pure blacks but keeps pronterface happy.
+                if( self.options.pronterface ):
+                    b64 = b64.replace("+", "9").replace("/", "9");
+                
                 gcode += ("L"+str(len(b64))+" ")
                 gcode += ("D"+b64+ "\n")
             forward = not forward
@@ -826,6 +837,8 @@ class Gcode_tools(inkex.Effect):
 
         # The 'laser on' and 'laser off' m-codes get appended to the GCODE generation
         lg = 'G00'
+        firstGCode = False
+	
         for i in range(1,len(curve['data'])):
             s, si = curve['data'][i-1], curve['data'][i]
 
@@ -835,7 +848,7 @@ class Gcode_tools(inkex.Effect):
                 #if lg != "G00":
                 #    gcode += LASER_OFF + "\n"
 				
-                gcode += "G00" + " S%.2f " % laserPower  + self.make_args(si[0]) + " F%i " % self.options.Mfeed + "%s" % ppmValue + "\n"
+                gcode += "G00 " + self.make_args(si[0]) + " F%i " % self.options.Mfeed + "\n"
                 lg = 'G00'
 
             elif s[1] == 'end':
@@ -843,7 +856,11 @@ class Gcode_tools(inkex.Effect):
 
 			#G01 : Move with the laser turned on to a new point
             elif s[1] == 'line':
-                gcode += "G01 " + "S%.2f " % laserPower + self.make_args(si[0]) + " %s " % cutFeed + "\n"
+                if not firstGCode: #Include the ppm values for the first G01 command in the set.
+                    gcode += "G01 " + self.make_args(si[0]) + "S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
+                    firstGCode = True
+                else:
+                    gcode += "G01 " + self.make_args(si[0]) + "\n"
                 lg = 'G01'
 
             #G02 and G03 : Move in an arc with the laser turned on.
@@ -858,7 +875,12 @@ class Gcode_tools(inkex.Effect):
                             gcode += cwArc
                         else:
                             gcode += ccwArc
-                        gcode += " " + self.make_args(si[0] + [None, dx, dy, None]) + " %s " % cutFeed + "\n"
+                        
+                        if not firstGCode: #Include the ppm values for the first G01 command in the set.
+                            gcode += " " + self.make_args(si[0] + [None, dx, dy, None]) + "S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
+                            firstGCode = True
+                        else:
+                            gcode += " " + self.make_args(si[0] + [None, dx, dy, None]) + "\n"
 
                     else:
                         r = (r1.mag()+r2.mag())/2
@@ -866,12 +888,24 @@ class Gcode_tools(inkex.Effect):
                             gcode += cwArc
                         else:
                             gcode += ccwArc
-                        gcode += " " + "S%.2f " % laserPower + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + " %s " % cutFeed + "\n"
+							
+                        if not firstGCode: #Include the ppm values for the first G01 command in the set.
+                            gcode += " " + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + "S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
+                            firstGCode = True
+                        else:
+                            gcode += " " + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + "\n"
+                        
 
                     lg = cwArc
                 #The arc is less than the minimum arc radius, draw it as a straight line.
                 else:
-                    gcode += "G01 " + "S%.2f " % laserPower + self.make_args(si[0]) + " %s " % cutFeed + "\n"
+                    if not firstGCode: #Include the ppm values for the first G01 command in the set.
+						gcode += "G01 " + self.make_args(si[0]) + "S%.2f " % laserPower +  "%s " % cutFeed + "%s" % ppmValue + "\n"
+						firstGCode = True
+                    else:
+						gcode += "G01 " + self.make_args(si[0]) + "\n"
+							
+							
                     lg = 'G01'
 
     
@@ -1356,6 +1390,9 @@ class Gcode_tools(inkex.Effect):
         else:
             inkex.errormsg(("You must choose mm or in"))
             return
+        
+        gcode += "M80 ; Turn on Optional Peripherals Board at LMN\n"
+         
 
         #Put the header data in the gcode file
         gcode += """
