@@ -21,28 +21,31 @@ Fire up inkscape and you will find the plugin under Extensions -> Export -> Turn
 This script relies on a more advanced version of the PIL library than Inkscape for windows ships with. As such you need to follow these steps for windows installs of Inkscape 0.91 
 You have two options to follow, choose the one you prefer.
 
-1) If you are using 32 bit inkscape you can use my precompiled version of 32 bit python 2.7.9 with all the needed libraries follow these steps :
+1) You can alternatively install python on your system, or use my precompiled version. To install python natively :
+* visit https://www.python.org/downloads/ and download python 2.7.9 32 bit version (https://www.python.org/ftp/python/2.7.9/python-2.7.9.msi) and install it to C:\Python27\ . Select the option to add Python to your path during install.
+* In the folder : C:\Program Files\Inkscape you will need to rename the folder "python" to "python-old" so it uses the new system install instead.
+* Open up the command line by pressing windows key+r and typing in 'cmd' without the quotes then press enter.
+* From the command line, run this command : pip install wheel
+* If you get an error message that pip cannot be found on your system, then your windows path is incorrect. Run this command, without the quotes "set PATH=%PATH%;C:\Python27\;C:\Python27\Scripts" and then repeat the above step.
+* Download the Python Image Library from this repo : https://github.com/TurnkeyTyranny/laser-gcode-exporter-inkscape-plugin/blob/master/PIL/Pillow-2.7.0-cp27-none-win32.whl and place it in an easy to navigate to folder, such as your C:\ folder. Alternatively you can download the latest version of PIL from http://www.lfd.uci.edu/~gohlke/pythonlibs/#pil
+* Start the command line by pressing windows key+r and typing in cmd and pressing enter.
+* From the command line, navigate to where you placed that file. If for example you placed it in the C drive you would type without the quotes
+* "cd c:\"
+* "pip install Pillow-2.7.0-cp27-none-win32.whl"
+* You also need to install the libxml library, from the command line run this command without the quotes.
+* "easy_install lxml"
+* You are done, launch inkscape and run the plugin!
+
+![alt tag](https://raw.githubusercontent.com/TurnkeyTyranny/laser-gcode-exporter-inkscape-plugin/master/python_2.7_install.png)
+![alt tag](https://raw.githubusercontent.com/TurnkeyTyranny/laser-gcode-exporter-inkscape-plugin/master/command_line_install.png)
+
+
+2) If you are using 32 bit inkscape you can potentially use my precompiled version of 32 bit python 2.7.9 with all the needed libraries follow these steps, however this works for some people and not for others. Unsure why :
 * Download my updated windows version of python from : https://www.dropbox.com/s/693n7m2fdq6160d/Python27.rar?dl=1
 * Navigate to C:\Program Files\Inkscape and rename the folder "python" to "python-old"
 * Extract the folder 'Python27' from the archive you downloaded to C:\Program Files\Inkscape and rename it to 'python' (Note the lower case p)
 * You are done, launch inkscape and run the plugin!
 * If you run the export plugin and you don't get a popup diagnostic log telling you which items were exported successfully then unfortunately you need to install Python manually as described below in option #2
-
-2) You can alternatively install python on your system, or use my precompiled version. To install python natively :
-* visit https://www.python.org/downloads/ and download python 2.7.9 and install it to C:\Python27\ . Select the option to add Python to your path during install.
-* In the folder : C:\Program Files\Inkscape you will need to rename the folder "python" to "python-old" so it uses the new system install instead.
-* Open up the command line by pressing windows key+r and typing in 'cmd' without the quotes then press enter.
-* From the command line, run this command : pip install wheel
-* If you get an error message that pip cannot be found on your system, then your windows path is incorrect. Run this command, without the quotes "set PATH=%PATH%;C:\Python27\;C:\Python27\Scripts" and then repeat the above step.
-* From http://www.lfd.uci.edu/~gohlke/pythonlibs/#pil : Replace x.x.x with the latest version. If you are running windows 32 bit download "Pillow-x.x.x-cp27-none-win32.whl", if you are running windows 64 bit download "Pillow-x.x.x-cp27-none-win_amd64.whl" and place it in an easy to navigate to folder. Alternatively get them from the PIL folder in this repo.
-* Start the command line by pressing windows key+r and typing in cmd and pressing enter.
-* From the command line, navigate to where you placed that file. If for example you placed it in the C drive you would type without the quotes
-* "cd c:\"
-* "pip install Pillow-2.7.0-cp27-none-win32.whl" or "pip install Pillow-2.7.0-cp27-none-win_amd64.whl" depending on which you downloaded
-* You also need to install the libxml library, from the command line run this command without the quotes.
-* "easy_install lxml"
-* You are done, launch inkscape and run the plugin!
-
 
 Linux Installation
 ------------------
