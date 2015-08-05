@@ -461,7 +461,7 @@ class Gcode_tools(inkex.Effect):
         self.OptionParser.add_option("-m", "--Mfeed",                    action="store", type="int",         dest="Mfeed", default="2000",                        help="Default Move Feed rate in unit/min")
         self.OptionParser.add_option("-p", "--feed",                    action="store", type="int",         dest="feed", default="300",                        help="Default Cut Feed rate in unit/min")
         self.OptionParser.add_option("-l", "--laser",                    action="store", type="int",         dest="laser", default="10",                        help="Default Laser intensity (0-100 %)")
-        self.OptionParser.add_option("-b",   "--homebefore",                 action="store", type="inkbool",    dest="homebefore", default=True, help="Home all beofre starting (G28)")
+        self.OptionParser.add_option("-b",   "--homebefore",                 action="store", type="inkbool",    dest="homebefore", default=True, help="Home all beofre starting (G28 XY)")
         self.OptionParser.add_option("-a",   "--homeafter",                 action="store", type="inkbool",    dest="homeafter", default=False, help="Home X Y at end of job")
 
 
@@ -1402,7 +1402,7 @@ class Gcode_tools(inkex.Effect):
 ; Default Laser Intensity %i percent\n""" % (self.options.feed, self.options.Mfeed, self.options.laser)
 
         if self.options.homebefore:
-            gcode += "G28 ; home all\n\n"
+            gcode += "G28 XY; home X and Y\n\n"
 
         #if self.options.function == 'Curve':
         data = self.effect_curve(selected)
