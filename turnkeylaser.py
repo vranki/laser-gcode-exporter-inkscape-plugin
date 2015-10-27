@@ -857,7 +857,7 @@ class Gcode_tools(inkex.Effect):
 			#G01 : Move with the laser turned on to a new point
             elif s[1] == 'line':
                 if not firstGCode: #Include the ppm values for the first G01 command in the set.
-                    gcode += "G01 " + self.make_args(si[0]) + "S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
+                    gcode += "G01 " + self.make_args(si[0]) + " S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
                     firstGCode = True
                 else:
                     gcode += "G01 " + self.make_args(si[0]) + "\n"
