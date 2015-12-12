@@ -43,7 +43,7 @@ Added an option to export as Marlin or Smoothie Power levels
 Changelog 2015-03-07: 
 Added capability to pick out power, ppm, feedrate etc from the layer names
 Added code to support Pulse Per Minute burning or continuous burning. Will default to continuous.
-M649 S100 L300 P10 - Set Laser settings to 100 percent power, pulses are each 300ms, and 10 pulses per mm.	
+M649 S100 L300 P10 - Set Laser settings to 100 percent power, pulses are each 300ms, and 10 pulses per mm.  
 G0 : Move to a new location with the laser off.
 G1 : Move to a new location with the laser on.
 G2 : Move in a Clockwise Arc   
@@ -144,6 +144,7 @@ SVG_IMAGE_TAG = inkex.addNS('image', 'svg')
 SVG_TEXT_TAG = inkex.addNS('text', 'svg')
 SVG_LABEL_TAG = inkex.addNS("label", "inkscape")
 
+UNIT_SCALES = {'in':90.0, 'pt':1.25, 'px':1.0, 'mm':3.5433070866, 'cm':35.433070866, 'm':3543.3070866,'km':3543307.0866, 'pc':15.0, 'yd':3240.0 , 'ft':1080.0}
 
 GCODE_EXTENSION = ".g" # changed to be Marlin friendly (ajf)
 
@@ -456,7 +457,7 @@ class Gcode_tools(inkex.Effect):
         self.OptionParser.add_option("-v", "--Yscale",                    action="store", type="float",         dest="Yscale", default="1.0",                    help="Scale factor Y")
         self.OptionParser.add_option("-x", "--Xoffset",                    action="store", type="float",         dest="Xoffset", default="0.0",                    help="Offset along X")    
         self.OptionParser.add_option("-y", "--Yoffset",                    action="store", type="float",         dest="Yoffset", default="0.0",                    help="Offset along Y")
-        # added move (laser off) feedrate and laser intensity; made all int rather than float - (ajf)																								   
+        # added move (laser off) feedrate and laser intensity; made all int rather than float - (ajf)                                                                                                  
 
         self.OptionParser.add_option("-m", "--Mfeed",                    action="store", type="int",         dest="Mfeed", default="2000",                        help="Default Move Feed rate in unit/min")
         self.OptionParser.add_option("-p", "--feed",                    action="store", type="int",         dest="feed", default="300",                        help="Default Cut Feed rate in unit/min")
@@ -486,7 +487,7 @@ class Gcode_tools(inkex.Effect):
         self.OptionParser.add_option("",   "--origin",                    action="store", type="string",         dest="origin", default="topleft",    help="Origin of the Y Axis")
         self.OptionParser.add_option("",   "--optimiseraster",                 action="store", type="inkbool",    dest="optimiseraster", default=True, help="Optimise raster horizontal scanning speed")
         
-		
+        
     def parse_curve(self, path):
 #        if self.options.Xscale!=self.options.Yscale:
 #            xs,ys = self.options.Xscale,self.options.Yscale
@@ -830,31 +831,31 @@ class Gcode_tools(inkex.Effect):
 
         cwArc = "G02"
         ccwArc = "G03"
-		
-		# The geometry is reflected, so invert the orientation of the arcs to match
+        
+        # The geometry is reflected, so invert the orientation of the arcs to match
         if (self.flipArcs):
             (cwArc, ccwArc) = (ccwArc, cwArc)
 
         # The 'laser on' and 'laser off' m-codes get appended to the GCODE generation
         lg = 'G00'
         firstGCode = False
-	
+    
         for i in range(1,len(curve['data'])):
             s, si = curve['data'][i-1], curve['data'][i]
 
-			#G00 : Move with the laser off to a new point
+            #G00 : Move with the laser off to a new point
             if s[1] == 'move':
                 #Turn off the laser if it was on previously.
                 #if lg != "G00":
                 #    gcode += LASER_OFF + "\n"
-				
+                
                 gcode += "G00 " + self.make_args(si[0]) + " F%i " % self.options.Mfeed + "\n"
                 lg = 'G00'
 
             elif s[1] == 'end':
                 lg = 'G00'
 
-			#G01 : Move with the laser turned on to a new point
+            #G01 : Move with the laser turned on to a new point
             elif s[1] == 'line':
                 if not firstGCode: #Include the ppm values for the first G01 command in the set.
                     gcode += "G01 " + self.make_args(si[0]) + " S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
@@ -888,7 +889,7 @@ class Gcode_tools(inkex.Effect):
                             gcode += cwArc
                         else:
                             gcode += ccwArc
-							
+                            
                         if not firstGCode: #Include the ppm values for the first G01 command in the set.
                             gcode += " " + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + "S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
                             firstGCode = True
@@ -900,12 +901,12 @@ class Gcode_tools(inkex.Effect):
                 #The arc is less than the minimum arc radius, draw it as a straight line.
                 else:
                     if not firstGCode: #Include the ppm values for the first G01 command in the set.
-						gcode += "G01 " + self.make_args(si[0]) + "S%.2f " % laserPower +  "%s " % cutFeed + "%s" % ppmValue + "\n"
-						firstGCode = True
+                        gcode += "G01 " + self.make_args(si[0]) + "S%.2f " % laserPower +  "%s " % cutFeed + "%s" % ppmValue + "\n"
+                        firstGCode = True
                     else:
-						gcode += "G01 " + self.make_args(si[0]) + "\n"
-							
-							
+                        gcode += "G01 " + self.make_args(si[0]) + "\n"
+                            
+                            
                     lg = 'G01'
 
     
@@ -925,12 +926,12 @@ class Gcode_tools(inkex.Effect):
         
     #Determine the tmp directory for the user's operating system.    
     def getTmpPath(self):
-		"""Define the temporary folder path depending on the operating system"""
+        """Define the temporary folder path depending on the operating system"""
 
-		if os.name == 'nt':
-			return 'C:\\WINDOWS\\Temp\\'
-		else:
-			return '/tmp/'
+        if os.name == 'nt':
+            return 'C:\\WINDOWS\\Temp\\'
+        else:
+            return '/tmp/'
 
     ################################################################################
     ###
@@ -1347,14 +1348,22 @@ class Gcode_tools(inkex.Effect):
         options = self.options
         selected = self.selected.values()
 
+        unitmatch = re.compile('(%s)$' % '|'.join(UNIT_SCALES.keys()))
+        param = re.compile(r'(([-+]?[0-9]+(\.[0-9]*)?|[-+]?\.[0-9]+)([eE][-+]?[0-9]+)?)')
+
         root = self.document.getroot()
-        #See if the user has the document setup in mm or pixels.
-        try:
-            self.pageHeight = float(root.get("height", None))                           
-        except:
-            inkex.errormsg(("Please change your inkscape project units to be in pixels, not inches or mm. In Inkscape press ctrl+shift+d and change 'units' on the page tab to px. The option 'default units' can be set to mm or inch, these are the units displayed on your rulers."))
-            return
-        
+        heightString = root.get("height", None)
+        p = param.search(heightString)
+        u = unitmatch.search(heightString)
+
+        if u:
+            self.pageUnit = u.group(0)
+        else:
+            self.pageUnit = 'px'
+
+        # convert page height to 'px' units
+        self.pageHeight = float(p.group(0))*UNIT_SCALES[self.pageUnit]
+                
         self.flipArcs = (self.options.Xscale*self.options.Yscale < 0)
         self.currentTool = 0
 
@@ -1381,16 +1390,17 @@ class Gcode_tools(inkex.Effect):
 
         gcode = self.header;
 
+        # All internal svg coords are in 'px' regardless of document unit
         if (self.options.unit == "mm"):
-            self.unitScale = 0.282222222222
+            self.unitScale = 1/UNIT_SCALES['mm']
             gcode += "G21 ; All units in mm\n"
         elif (self.options.unit == "in"):
-            self.unitScale = 0.011111
+            self.unitScale = 1/UNIT_SCALES['in']
             gcode += "G20 ; All units in in\n"
         else:
             inkex.errormsg(("You must choose mm or in"))
             return
-        
+            
         gcode += "M80 ; Turn on Optional Peripherals Board at LMN\n"
          
 
