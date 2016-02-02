@@ -146,7 +146,7 @@ SVG_LABEL_TAG = inkex.addNS("label", "inkscape")
 
 UNIT_SCALES = {'in':90.0, 'pt':1.25, 'px':1.0, 'mm':3.5433070866, 'cm':35.433070866, 'm':3543.3070866,'km':3543307.0866, 'pc':15.0, 'yd':3240.0 , 'ft':1080.0}
 
-GCODE_EXTENSION = ".g" # changed to be Marlin friendly (ajf)
+GCODE_EXTENSION = ".ngc" # changed to be Marlin friendly (ajf)
 
 options = {}
 
@@ -578,6 +578,8 @@ class Gcode_tools(inkex.Effect):
     
 
     def check_dir(self):
+        inkex.errormsg("Looking for header in " + self.options.directory+'/header')
+
         if (os.path.isdir(self.options.directory)):
             if (os.path.isfile(self.options.directory+'/header')):
                 f = open(self.options.directory+'/header', 'r')
@@ -822,12 +824,14 @@ class Gcode_tools(inkex.Effect):
                 
         #Setup our pulse per millimetre option, if applicable
         #B: laser firing mode (0 = continuous, 1 = pulsed, 2 = raster)
-        if (altppm):
-            # Use the "alternative" ppm - L60000 is 60us
-            ppmValue = "L60000 P%.2f B1 D0" % altppm
-        else:
-            #Set the laser firing mode to continuous.
-            ppmValue = "B0 D0"
+
+        ppmValue = " "
+#        if (altppm):
+#            # Use the "alternative" ppm - L60000 is 60us
+#            ppmValue = "L60000 P%.2f B1 D0" % altppm
+#        else:
+#            #Set the laser firing mode to continuous.
+#            ppmValue = "B0 D0"
 
         cwArc = "G02"
         ccwArc = "G03"
@@ -851,7 +855,7 @@ class Gcode_tools(inkex.Effect):
                 
                 gcode += "G00 " + self.make_args(si[0]) + " F%i " % self.options.Mfeed + "\n"
                 lg = 'G00'
-
+                gcode += LASER_ON+"\n"
             elif s[1] == 'end':
                 lg = 'G00'
 
@@ -878,7 +882,7 @@ class Gcode_tools(inkex.Effect):
                             gcode += ccwArc
                         
                         if not firstGCode: #Include the ppm values for the first G01 command in the set.
-                            gcode += " " + self.make_args(si[0] + [None, dx, dy, None]) + "S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
+                            gcode += " " + self.make_args(si[0] + [None, dx, dy, None]) + " S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
                             firstGCode = True
                         else:
                             gcode += " " + self.make_args(si[0] + [None, dx, dy, None]) + "\n"
@@ -891,7 +895,7 @@ class Gcode_tools(inkex.Effect):
                             gcode += ccwArc
                             
                         if not firstGCode: #Include the ppm values for the first G01 command in the set.
-                            gcode += " " + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + "S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
+                            gcode += " " + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + " S%.2f " % laserPower + "%s " % cutFeed + "%s" % ppmValue + "\n"
                             firstGCode = True
                         else:
                             gcode += " " + self.make_args(si[0]) + " R%f" % (r*self.options.Xscale) + "\n"
@@ -901,7 +905,7 @@ class Gcode_tools(inkex.Effect):
                 #The arc is less than the minimum arc radius, draw it as a straight line.
                 else:
                     if not firstGCode: #Include the ppm values for the first G01 command in the set.
-                        gcode += "G01 " + self.make_args(si[0]) + "S%.2f " % laserPower +  "%s " % cutFeed + "%s" % ppmValue + "\n"
+                        gcode += "G01 " + self.make_args(si[0]) + " S%.2f " % laserPower +  "%s " % cutFeed + "%s" % ppmValue + "\n"
                         firstGCode = True
                     else:
                         gcode += "G01 " + self.make_args(si[0]) + "\n"
@@ -1236,7 +1240,7 @@ class Gcode_tools(inkex.Effect):
                
                 #Turnkey : Always output the layer header for information.
                 if (len(layers) > 0):
-                    header_data += LASER_ON+"\n"
+#                    header_data += LASER_ON+"\n"
                     size = 60
                     header_data += ";(%s)\n" % ("*"*size)
                     header_data += (";(***** Layer: %%-%ds *****)\n" % (size-19)) % (originalLayerName)
@@ -1335,7 +1339,7 @@ class Gcode_tools(inkex.Effect):
                         gcode_raster += header_data+self.generate_raster_gcode(curve, laserPower, altfeed=altfeed)
                   
         if self.options.homeafter:
-            gcode += "\n\nG00 X0 Y0 F4000 ; home"
+            gcode += "\n\nG00 X0 Y0 F4000 ; home\n"
        
        
         #Always raster before vector cutting.
@@ -1401,7 +1405,7 @@ class Gcode_tools(inkex.Effect):
             inkex.errormsg(("You must choose mm or in"))
             return
             
-        gcode += "M80 ; Turn on Optional Peripherals Board at LMN\n"
+        # gcode += "M80 ; Turn on Optional Peripherals Board at LMN\n"
          
 
         #Put the header data in the gcode file
