@@ -855,6 +855,7 @@ class Gcode_tools(inkex.Effect):
                 
                 gcode += "G00 " + self.make_args(si[0]) + " F%i " % self.options.Mfeed + "\n"
                 lg = 'G00'
+                gcode += "S%.2f ;set speed\n" % laserPower 
                 gcode += LASER_ON+"\n"
             elif s[1] == 'end':
                 lg = 'G00'
