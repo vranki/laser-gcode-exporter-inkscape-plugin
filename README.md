@@ -49,7 +49,11 @@ You have two options to follow, choose the one you prefer.
 
 Linux Installation
 ------------------
-More fleshed out instructions to come at a later date. Essentially just install the PIL library through yum or apt-get and place the 2 script files (.py and .inx) into your extensions directory.
+
+* Install the PIL library: sudo apt-get install python3-pil
+* Copy the plugin into extensions directory: cp turnkeylaser.inx turnkeylaser.py $HOME/.config/inkscape/extensions/
+
+That's it! Restart Inkscape, if it was running.
 
 Usage and Setup
 ---------------
