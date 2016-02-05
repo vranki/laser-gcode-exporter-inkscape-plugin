@@ -402,6 +402,7 @@ def get_layers(document):
             layers.append(node)
     return layers
 
+# Parse the power [arg=value] formatted layer names
 def parse_layer_name(txt):
     params = {}
     try:
@@ -413,6 +414,8 @@ def parse_layer_name(txt):
         args = txt[n+1:].strip()
         if (args.endswith("]")):
             args = args[0:-1]
+        # Allow spaces in the args list
+        args = args.replace(' ', '')
 
         for arg in args.split(","):
             try:
@@ -846,10 +849,6 @@ class Gcode_tools(inkex.Effect):
 
             #G00 : Move with the laser off to a new point
             if s[1] == 'move':
-                #Turn off the laser if it was on previously.
-                #if lg != "G00":
-                #    gcode += LASER_OFF + "\n"
-
                 gcode += "G00 " + self.make_args(si[0]) + " F%i " % self.options.Mfeed + "\n"
                 lg = 'G00'
                 # Set power and turn on laser here on linuxcnc
@@ -858,6 +857,8 @@ class Gcode_tools(inkex.Effect):
                     gcode += LASER_ON+"\n"
 
             elif s[1] == 'end':
+                # end of a path - turn off laser
+                gcode += LASER_OFF + "\n"
                 lg = 'G00'
 
             #G01 : Move with the laser turned on to a new point
