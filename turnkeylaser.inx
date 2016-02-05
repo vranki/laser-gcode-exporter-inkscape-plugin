@@ -19,7 +19,7 @@
 
     <param name='tab' type="notebook">
         <page name='tab' _gui-text='Help'>
-            <_param name="fullhelp" type="description">TurnkeyLaser exports Inkscape paths to Gcode compatible with Ramps+Marlin or Smoothieware laser mainboards.
+            <_param name="fullhelp" type="description">TurnkeyLaser exports Inkscape paths to Gcode compatible with Ramps+Marlin, Smoothieware or LinuxCNC laser mainboards.
 
 You're able to specify in your layer names the laser power output, feedrate and optionally the pulse per millimetre option for pulsed lasing mode as opposed to the default continuous wave operation mode.
 
