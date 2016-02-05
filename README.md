@@ -1,25 +1,30 @@
 About This Project
 ------------------
 This project was intended to build and all in one exporting plugin for laser cutters and Inkscape 0.91. It has not been tested on lower versions of Inkscape but may work..
-The plugin builds gcode that is compatible with a fork of Marlin designed to run on laser cutters found at https://github.com/TurnkeyTyranny/buildlog-lasercutter-marlin .
+The plugin builds gcode that is compatible with:
+
+* A fork of Marlin designed to run on laser cutters found at https://github.com/TurnkeyTyranny/buildlog-lasercutter-marlin .
+* LinuxCNC based lasers (no support for raster images)
 
 You can contact me via email at : 394ad2f@gmail.com, I check my email daily usually.
 
 Donations
 ---------
-Find this software useful? Donations are gratefully appreciated. 
+Find this software useful? Donations are gratefully appreciated.
 
 * Paypal to 394ad2f@gmail.com
 * Bitcoins to 16TFmnFyvDA8Q6TTakvvhargy8c89Rb3cj
 
-Installation
-------------
+Windows Installation
+--------------------
 
 Copy the files turnkeylaser.py and turnkeylaser.inx into your Inkscape extensions folder -> C:\Program Files\Inkscape\share\extensions
 Fire up inkscape and you will find the plugin under Extensions -> Export -> Turnkey Laser Exporter.
 
-This script relies on a more advanced version of the PIL library than Inkscape for windows ships with. As such you need to follow these steps for windows installs of Inkscape 0.91 
-You have two options to follow, choose the one you prefer.
+This script relies on a more advanced version of the PIL library than Inkscape for windows ships with. As such you need to follow these steps for windows installs of Inkscape 0.91.
+Note: PIL is needed only for raster images. If you cut only vectors, you won't need to update PIL.
+
+If you want to update PIL, you have two options to follow. Choose the one you prefer.
 
 1) You can alternatively install python on your system, or use my precompiled version. To install python natively :
 * visit https://www.python.org/downloads/ and download python 2.7.9 32 bit version (https://www.python.org/ftp/python/2.7.9/python-2.7.9.msi) and install it to C:\Python27\ . Select the option to add Python to your path during install.
@@ -50,8 +55,8 @@ You have two options to follow, choose the one you prefer.
 Linux Installation
 ------------------
 
-* Install the PIL library: sudo apt-get install python3-pil
 * Copy the plugin into extensions directory: cp turnkeylaser.inx turnkeylaser.py $HOME/.config/inkscape/extensions/
+* Install the PIL library: sudo apt-get install python3-pil
 
 That's it! Restart Inkscape, if it was running.
 
@@ -69,13 +74,13 @@ The ppm option is optional, if you do not specify it then the laser will default
 If you do not name your layer in this way then the script will use the default settings specified in the dialog box.
 
 
-When you're ready to export your objects, images or paths just select the items you would like to be exported by dragging over them or holding shift to select multiple and then run the plugin under under Extensions Menu -> Export -> Turnkey Laser Exporter. 
+When you're ready to export your objects, images or paths just select the items you would like to be exported by dragging over them or holding shift to select multiple and then run the plugin under under Extensions Menu -> Export -> Turnkey Laser Exporter.
 ![alt tag](https://raw.githubusercontent.com/TurnkeyTyranny/laser-gcode-exporter-inkscape-plugin/master/instructions.png)
 
 
 Sending the file to your laser
 ------------------------------
-You can send the file to your laser by serial (USB cable) or SD memory card. 
+You can send the file to your laser by serial (USB cable) or SD memory card.
 
 1) Via USB cable
 * Download repetier host and install it on your PC - http://www.repetier.com/download/
@@ -94,8 +99,8 @@ Alternatively you can use pronterface http://www.pronterface.com/index.html#down
 Keyboard Shortcut
 -----------------
 
-You may find it handy to assign the extension to a keyboard shortcut. 
-Include something like the following line to your inkscape keys 
+You may find it handy to assign the extension to a keyboard shortcut.
+Include something like the following line to your inkscape keys
 preferences file (this will bind the plugin to Ctrl+\):
 
 <bind key="backslash" modifiers="Ctrl" action="org.thinkhaus.filter.thlaser"
@@ -147,8 +152,10 @@ Updated script to export rasters with top left as the origin or bottom left.
 09-April-2015 - Updated the readme with better install instructions. Updated the expoter to use a faster method of finding the X-Y coordinates to many rasters however it's only compatible with Inkscape 0.91 now using that command as far as I have been told.
 
 10-April-2015 - Fixed a bug with exporting paths when the origin was the top left.
-Disabled raster horizintal movement optimisation as it has a bug. Rasters will be a little slower but will come out oriented correctly. Search for line : row2 = rowData 
+Disabled raster horizintal movement optimisation as it has a bug. Rasters will be a little slower but will come out oriented correctly. Search for line : row2 = rowData
 
 11-April-2015 - Added back in raster optimising, it's not perfect but it's mostly there. Only a little slow parsing white vertical space now.
 Found that raster optimisation code seems to be changing the pixel data at the end of the line somewhere. I'm not sure how since it's meant to just be cutting part of the data line out not changing it. will need to investigate further.
 Added option to the menu for users to disable raster optimisations.
+
+05-February-2016 - Added support for LinuxCNC based lasers and Air Assist option.
