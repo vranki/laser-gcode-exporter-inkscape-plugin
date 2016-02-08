@@ -422,7 +422,7 @@ def parse_layer_name(txt):
                 (field, value) = arg.split("=")
             except:
                 raise ValueError("Invalid argument in layer '%s'" % layerName)
-            if (field == "feed" or field == "ppm"):
+            if (field == "feed" or field == "f" or field == "ppm" or field == "power" or field == "p"):
                 try:
                     value = float(value)
                 except:
@@ -1173,8 +1173,15 @@ class Gcode_tools(inkex.Effect):
                 return
 
             # Check if the layer specifies an alternative (from the default) feed rate
-            altfeed = layerParams.get("feed", self.options.feed)
+            if (layerParams.get("f", None)):
+                altfeed = layerParams.get("f", self.options.feed)
+            else:
+                altfeed = layerParams.get("feed", self.options.feed)
             altppm = layerParams.get("ppm", None)
+            if (layerParams.get("p", None)):
+                laserPower = layerParams.get("p", None)
+            else:
+                laserPower = layerParams.get("power", None)
 
             logger.write("layer %s" % layerName)
             if (layerParams):
@@ -1215,16 +1222,17 @@ class Gcode_tools(inkex.Effect):
             #Determind the power of the laser that this layer should be cut at.
             #If the layer is not named as an integer value then default to the laser intensity set at the export settings.
             #Fetch the laser power from the export dialog box.
-            laserPower = self.options.laser
-
-            try:
-                if (int(layerName) > 0 and int(layerName) <= 100):
-                    laserPower = int(layerName)
-                else :
-                    laserPower = self.options.laser
-            except ValueError,e:
+            if (not laserPower):
                 laserPower = self.options.laser
-                inkex.errormsg("Unable to parse power level for layer name. Using default power level %d percent." % (self.options.laser))
+
+                try:
+                    if (int(layerName) > 0 and int(layerName) <= 100):
+                        laserPower = int(layerName)
+                    else :
+                        laserPower = self.options.laser
+                except ValueError,e:
+                    laserPower = self.options.laser
+                    inkex.errormsg("Unable to parse power level for layer name. Using default power level %d percent." % (self.options.laser))
 
 
 
@@ -1304,14 +1312,15 @@ class Gcode_tools(inkex.Effect):
                     #Fetch the laser power from the export dialog box.
                     laserPower = self.options.laser
 
-                    try:
-                        if (int(layerName) > 0 and int(layerName) <= 100):
-                            laserPower = int(layerName)
-                        else :
+                    if (not laserPower):
+                        try:
+                            if (int(layerName) > 0 and int(layerName) <= 100):
+                                laserPower = int(layerName)
+                            else :
+                                laserPower = self.options.laser
+                        except ValueError,e:
                             laserPower = self.options.laser
-                    except ValueError,e:
-                        laserPower = self.options.laser
-                        inkex.errormsg("Unable to parse power level for layer name. Using default power level %d percent." % (self.options.laser))
+                            inkex.errormsg("Unable to parse power level for layer name. Using default power level %d percent." % (self.options.laser))
 
                     #Switch between smoothie power levels and ramps+marlin power levels
                     #ramps and marlin expect 0 to 100 while smoothie wants 0.0 to 1.0
