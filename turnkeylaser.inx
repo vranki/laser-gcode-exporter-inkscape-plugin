@@ -23,12 +23,16 @@
 
 You're able to specify in your layer names the laser power output, feedrate and optionally the pulse per millimetre option for pulsed lasing mode as opposed to the default continuous wave operation mode.
 
-1)Name your layer like the following example :
-35 [feed=600,ppm=40]
-2)Draw your designs and group them based on lasing options in the layer name.
-3)Select the paths you want to export, then run this script.
+1) Name your layer in one the following ways:
+    LayerName -- name, default values from dialog box
+    35 -- power, rest using defaults
+    35 [feed=600, ppm=40] -- power, feed and ppm
+    [power=35, f=600] -- power and feed
+    LayerName [p=35, f=600] -- name, power and feed
+2) Draw your designs and group them based on lasing options in the layer name. Layers are read from top to bottom.
+3) Select the paths you want to export, then run this script.
 
-In the example above the layer will be cut at 35% power with a feedrate of 600mm per minute and a pulse rate of 40 pulses per millimetre (at 60ms pulses).
+In the example above the layer will be cut at 35% power with a feedrate of 600mm per minute (and possibly with a pulse rate of 40 pulses per millimetre, at 60ms pulses).
 
 If the ppm option isn't specified in the layer options then output lines will be cut in continuous wave mode at the power and feed specified.
 If you do not specify the laser power or other options in the layer name then they will default to the options in the export dialog box under "Preferences".
