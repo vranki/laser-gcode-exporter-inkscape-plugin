@@ -159,3 +159,6 @@ Found that raster optimisation code seems to be changing the pixel data at the e
 Added option to the menu for users to disable raster optimisations.
 
 05-February-2016 - Added support for LinuxCNC based lasers and Air Assist option.
+
+8-February-2016 - Changed the way how laser parameters are acquired from the layer name. You can use descriptive names for layers with the params (power or p, ppm, feed or f). If some parameter is missing, a default value is used. Spaces are allowed in the args list.
+The following 5 formats (without quotes) are recognized: "LayerName" -- just a descriptive name, get all default values from dialog box. "42" -- just a power setting, rest using defaults. "42 [feed=123]" -- power and feed. "[power=42, f=123]" -- power and feed. "LayerName [p=42, f=123]" -- descriptive name, power and feed.
