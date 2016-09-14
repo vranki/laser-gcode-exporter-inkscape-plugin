@@ -1,0 +1,54 @@
+G21 ; All units in mm
+
+; Raster data will always precede vector data
+; Default Cut Feedrate 300 mm per minute
+; Default Move Feedrate 2000 mm per minute
+; Default Laser Intensity 100 percent
+M7 ;turn on air assist
+
+
+
+;(************************************************************)
+;(***** Layer: 50 [feed=400]                             *****)
+;(***** Laser Power: 50                                  *****)
+;(***** Feed Rate: 400.0                                 *****)
+;(************************************************************)
+;(MSG,Starting layer '50 [feed=400]')
+
+G00 X26.102 Y61.735 F2000 
+S50.00 ;set power
+M3 ;turn the laser on
+G01 X15.826 Y60.952 S50.00 F400  
+G01 X11.271 Y34.851
+G01 X22.144 Y35.707
+G01 X22.648 Y38.914
+G01 X23.674 Y35.828
+G01 X34.511 Y36.680
+G01 X26.102 Y61.735
+G01 X26.102 Y61.735
+M5 ;turn the laser off
+
+G00 X35.158 Y34.752 F2000 
+S50.00 ;set power
+M3 ;turn the laser on
+G01 X24.315 Y33.899
+G01 X24.856 Y32.271
+G01 X21.563 Y32.009
+G01 X21.829 Y33.703
+G01 X10.920 Y32.844
+G01 X6.346 Y6.639
+G01 X17.216 Y4.385
+G01 X19.740 Y21.505
+G01 X28.150 Y22.110
+G01 X33.406 Y5.699
+G01 X43.648 Y9.454
+G01 X35.158 Y34.752
+G01 X35.158 Y34.752
+M5 ;turn the laser off
+
+
+G00 X0 Y0 F4000 ; home
+
+
+M2 ;program end
+
