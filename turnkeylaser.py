@@ -849,8 +849,9 @@ class Gcode_tools(inkex.Effect):
 
             #G00 : Move with the laser off to a new point
             if s[1] == 'move':
-                gcode += "G00 " + self.make_args(si[0]) + " F%i " % self.options.Mfeed + "\n"
+                gcode += "G00 " + self.make_args(si[0]) + " F%i " % self.options.Mfeed + ";move\n"
                 lg = 'G00'
+                firstGCode = False; # After move set feed on next command
                 # Set power and turn on laser here on linuxcnc
                 if self.options.mainboard == 'linuxcnc':
                     gcode += "S%.2f ;set power\n" % laserPower
