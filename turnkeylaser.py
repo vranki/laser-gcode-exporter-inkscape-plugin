@@ -477,6 +477,7 @@ class Gcode_tools(inkex.Effect):
         self.OptionParser.add_option("",   "--double_sided_cutting",action="store", type="inkbool",    dest="double_sided_cutting", default=False,help="Generate code for double-sided cutting.")
         self.OptionParser.add_option("",   "--draw-curves",                action="store", type="inkbool",    dest="drawCurves", default=False,help="Draws curves to show what geometry was processed")
         self.OptionParser.add_option("",   "--logging",                 action="store", type="inkbool",    dest="logging", default=False, help="Enable output logging from the plugin")
+        self.OptionParser.add_option("",   "--plasma",                 action="store", type="inkbool",    dest="plasma", default=False, help="Machine is plasma, not laser")
 
         self.OptionParser.add_option("",   "--loft-distances",            action="store", type="string",         dest="loft_distances", default="10",            help="Distances between paths.")
         self.OptionParser.add_option("",   "--loft-direction",            action="store", type="string",         dest="loft_direction", default="crosswise",        help="Direction of loft's interpolation.")
@@ -854,12 +855,19 @@ class Gcode_tools(inkex.Effect):
                 firstGCode = False; # After move set feed on next command
                 # Set power and turn on laser here on linuxcnc
                 if self.options.mainboard == 'linuxcnc':
+                    if self.options.plasma:
+                        gcode += "M8;flood coolant on\n"
+                        gcode += "G4 P0.2;pause\n"
                     gcode += "S%.2f ;set power\n" % laserPower
                     gcode += LASER_ON+"\n"
+                    if self.options.plasma:
+                        gcode += "G4 P0.6;pause\n"
 
             elif s[1] == 'end':
                 # end of a path - turn off laser
                 gcode += LASER_OFF + "\n"
+                if self.options.plasma:
+                    gcode += "M9;coolant off\n"
                 lg = 'G00'
 
             #G01 : Move with the laser turned on to a new point
@@ -913,14 +921,14 @@ class Gcode_tools(inkex.Effect):
                     else:
                         gcode += "G01 " + self.make_args(si[0]) + "\n"
 
-
                     lg = 'G01'
 
 
         #The end of the layer.
         if si[1] == 'end':
             gcode += LASER_OFF
-
+            if self.options.plasma:
+                gcode += "M9;coolant off\n"
 
         return gcode
 

@@ -56,8 +56,9 @@ For the latest revision please visit https://github.com/TurnkeyTyranny/laser-gco
             <param name="min-arc-radius" type="float" precision="5" min="-1000" max="5000"  _gui-text="Minimum arc radius">0.00005</param>
             <param name="Xoffset" type="float" precision="4" min="-1000" max="1000" _gui-text="Offset along X axis">0.0</param>
             <param name="Yoffset" type="float" precision="4" min="-1000" max="1000" _gui-text="Offset along Y axis">0.0</param>
-            <param name="logging" type="boolean" _gui-text="Log debug output from plugin:">true</param>
-            <param name="optimiseraster" type="boolean" _gui-text="Optimise raster horizontal scanning speed:">true</param>
+            <param name="plasma" type="boolean" _gui-text="Machine is plasma, not laser">false</param>
+            <param name="logging" type="boolean" _gui-text="Log debug output from plugin">true</param>
+            <param name="optimiseraster" type="boolean" _gui-text="Optimise raster horizontal scanning speed">true</param>
             <_param name="help" type="description">Will optimise raster paths, may cause slight overburn at the edges of the raster.</_param>
 
         </page>
